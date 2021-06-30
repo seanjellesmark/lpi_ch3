@@ -75,12 +75,39 @@ lpi_error <- lpi %>%
 lpi_work <- lpi %>% 
   filter(Managed != 2)
 
-# Number of managed and not not managed populations - 9296 unmanaged pops and 5362 managed
+# Number of managed and not not managed populations
 
 lpi_work %>% 
-  count(Managed)
+  count(Managed) # 9296 unmanaged pops and 5362 managed
 
 # Join the conservation sheet to the lpi work sheet
 
 lpi_work1 <- left_join(lpi_work, cons, by = "Management_type") 
+
+# Create variables for starting year, number of ops and duration of time series
+ # First thing to do is to transform the df into a long format
+
+lpi_work2 <- lpi_work1 %>% 
+  pivot_longer('1950':'2019',
+               names_to = "year",
+               values_to = "value") # Goes from 14658 rows to 1026060 rows
  
+lpi_work2$year <- as.integer(lpi_work2$year)
+lpi_work2$value <- as.numeric(lpi_work2$value)
+
+  
+ # Group and filter away NA values to create the variables and select the variables we need 
+
+lpi_work3 <- lpi_work2 %>% 
+  group_by(ID) %>%
+  filter(!is.na(value)) %>% 
+  mutate(start_year = min(year),
+         last_year = max(year),
+         ts_length = last_year - start_year) %>% 
+  select(ID, start_year, last_year, ts_length) %>% 
+  distinct() %>% 
+  ungroup()
+
+ # Join the three new varaibles to the lpi data
+
+lpi_work4 <- left_join(lpi_work1, lpi_work3, by = "ID")
