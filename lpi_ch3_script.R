@@ -11,12 +11,24 @@ library(openxlsx)
 library(rtrim)
 library(tidyverse)
 library(patchwork)
+library(MatchIt)
+
+# Load LPI data
 
 lpi <- read_excel("C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Data/LPD_output_20201116.xlsx")
 
-cons<- read_excel("C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Data/Conservation_LPD_worksheet25052021.xlsx")
+# Conservation sheet
 
-# Check length of the different management types nand validate whether these can be recategorised into Salafsky (2008) categories
+cons<- read_excel("C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Data/Conservation_LPD_worksheet03062021_mh.xlsx") %>% 
+  select(everything(), -(13:15)) %>% 
+  filter(cons_action_1 != "?")
+
+  # Problem with cons variables being rounded down to 2.29999 (albeint being characters) and decimals are off, probably some Excel witchcraft.
+  # Fix by converting to numeric, rounding and then convert to factor
+cons %>% 
+  mutate(across(as.numeric(cons_action_1:cons_action_4), ~round(., 1)))
+
+# Check the different management types and validate whether these can be recategorised
 
 lpi$Management_type <- factor(lpi$Management_type)
 
@@ -24,7 +36,7 @@ list<-levels(lpi$Management_type)
 
 list_man <- lpi %>% 
   group_by(Management_type) %>% 
-  summarise(number_of_pops = n()) # Looks surprisingly manageable - 1025 different management types
+  summarise(number_of_pops = n()) # Looks surprisingly manageable - 1025 unique management comments
 # write.csv(list_man, "C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Data/man_com.csv")
 
 
@@ -52,5 +64,23 @@ name_location_exp <- left_join(cons_exp, name_location, by = "Management_type")
 
 # write.csv(name_location_exp, "C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Data/man_com_name_loc.csv")
 
+# Check if any pops have management comments but managed variable as 2 or 0
+ # 81 pops in total, most management comments are cryptic so easiest to just remove
+
+lpi_error <- lpi %>% 
+  filter(Managed == 0 & Management_type != "NULL" | Managed == 2 & Management_type != "NULL")
+  
 # Remove populations without management info
- # Problems connecting
+
+lpi_work <- lpi %>% 
+  filter(Managed != 2)
+
+# Number of managed and not not managed populations - 9296 unmanaged pops and 5362 managed
+
+lpi_work %>% 
+  count(Managed)
+
+# Join the conservation sheet to the lpi work sheet
+
+lpi_work1 <- left_join(lpi_work, cons, by = "Management_type") 
+ 
