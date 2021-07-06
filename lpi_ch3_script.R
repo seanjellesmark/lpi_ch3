@@ -19,14 +19,19 @@ lpi <- read_excel("C:/Users/seanj/OneDrive - University College London/Articles 
 
 # Conservation sheet
 
-cons<- read_excel("C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Data/Conservation_LPD_worksheet03062021_mh.xlsx") %>% 
+cons<- read_excel("C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Data/Conservation_LPD_worksheet05072021.xlsx") %>% 
   select(everything(), -(13:15)) %>% 
   filter(cons_action_1 != "?")
 
   # Problem with cons variables being rounded down to 2.29999 (albeint being characters) and decimals are off, probably some Excel witchcraft.
   # Fix by converting to numeric, rounding and then convert to factor
-cons %>% 
-  mutate(across(as.numeric(cons_action_1:cons_action_4), ~round(., 1)))
+
+cons1 <- cons %>% 
+  mutate(across(cons_action_1:cons_action_4,
+                ~ case_when(.x == "1.1000000000000001" ~ "1.1",
+                            .x == "2.2000000000000002" ~ "2.2",
+                            .x == "2.2999999999999998" ~ "2.3",
+                            TRUE ~ (.x))))
 
 # Check the different management types and validate whether these can be recategorised
 
@@ -75,6 +80,9 @@ lpi_error <- lpi %>%
 lpi_work <- lpi %>% 
   filter(Managed != 2)
 
+# Remember to filter for other conditions so aggregated national trends are removed. Have to figure out the best way to do so
+
+
 # Number of managed and not not managed populations
 
 lpi_work %>% 
@@ -108,6 +116,13 @@ lpi_work3 <- lpi_work2 %>%
   distinct() %>% 
   ungroup()
 
- # Join the three new varaibles to the lpi data
+ # Join the three new variables to the lpi data
 
-lpi_work4 <- left_join(lpi_work1, lpi_work3, by = "ID")
+lpi_work4 <- left_join(lpi_work1, lpi_work3, by = "ID") 
+
+
+# Contruct pre-match object to check initial balance. 
+# Most variables are categorical and will be exact but potentially a few continuous (that we just created)
+
+pre_match <- matchit(Managed ~ Common_name.x + start_year, data = lpi_work4,
+                  method = "nearest", exact = "Common_name.x", distance = "glm")
