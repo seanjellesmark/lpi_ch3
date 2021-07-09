@@ -175,12 +175,27 @@ pre_match <- matchit(treatment ~ Species + Country, data = lpi_work6,
 
  # Extract matched data
 
-lpi_matched <- match.data(pre_match)
+lpi_match <- match.data(pre_match)
+
+lpi_cons <- lpi_match %>% 
+  filter(treatment == 1)
+
+lpi_control <- lpi_match %>% 
+  filter(treatment == 0)
+  
 
 # Create infile and LPImain
 
 # creatre infile and LPI main
 
-create_infile(lpi_matched, name = "lpi_matched",  start_col_name = 'X1970', end_col_name = 'X2018')
 
-lpi_matched<-LPIMain(infile = "lpi_matched_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+create_infile(lpi_cons, name = "lpi_cons",  start_col_name = 'X1970', end_col_name = 'X2018')
+
+lpi_matched_cons<-LPIMain(infile = "lpi_cons_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+create_infile(lpi_control, name = "lpi_control",  start_col_name = 'X1970', end_col_name = 'X2018')
+
+lpi_matched_control<-LPIMain(infile = "lpi_control_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+
+ggplot_lpi(lpi_matched_control)
