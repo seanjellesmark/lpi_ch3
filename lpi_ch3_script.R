@@ -28,8 +28,8 @@ cons<- read_excel("C:/Users/seanj/OneDrive - University College London/Articles 
   select(everything(), -(13:15)) %>% 
   filter(cons_action_1 != "?")
 
-  # Problem with cons variables being rounded down to 2.29999 (albeint being characters) and decimals are off, probably some Excel witchcraft.
-  # Fix by converting to numeric, rounding and then convert to factor
+  # Problem with cons variables being rounded down to 2.29999 (albeit being characters) and decimals are off, probably some Excel witchcraft.
+  # Fix by correcting wrong decimals into right category
 
 cons <- cons %>% 
   mutate(across(cons_action_1:Alternative_cons,
@@ -200,7 +200,7 @@ lpi_work7 <- lpi_work6 %>%
                                               cons_action_3 == "3.1.3" ~ 1,
                                               cons_action_4 == "3.1.3" ~ 1, 
                                               TRUE ~ 0),
-         speceis_recovery_3.2 = case_when(cons_action_1 == "3.2" ~ 1, 
+         species_recovery_3.2 = case_when(cons_action_1 == "3.2" ~ 1, 
                                               cons_action_2 == "3.2" ~ 1,
                                               cons_action_3 == "3.2" ~ 1,
                                               cons_action_4 == "3.2" ~ 1, 
@@ -210,7 +210,7 @@ lpi_work7 <- lpi_work6 %>%
                                               cons_action_3 == "3.3.1" ~ 1,
                                               cons_action_4 == "3.1.1" ~ 1, 
                                               TRUE ~ 0),
-         benign_reintoduction = case_when(cons_action_1 == "3.3.2" ~ 1, 
+         benign_reintroduction_3.3.2 = case_when(cons_action_1 == "3.3.2" ~ 1, 
                                               cons_action_2 == "3.3.2" ~ 1,
                                               cons_action_3 == "3.3.2" ~ 1,
                                               cons_action_4 == "3.3.2" ~ 1, 
@@ -316,20 +316,47 @@ lpi_work7 <- lpi_work6 %>%
                                             cons_action_4 == "r3.2" ~ 1, 
                                             TRUE ~ 0))
 
+# Create general categories that describe the conservation category - sorry for the wide code
+
+lpi_work8 <- lpi_work7 %>% 
+  mutate(land_water_protection = if_else(site_area_protection_1.1 == 1, 1, 0),
+         land_water_management = if_else((site_area_management_2.1 == 1 | invasive_problem_species_2.2 == 1 | habitat_natural_process_restoration_2.3 == 1), 1, 0),
+         species_management = if_else((harvest_management_3.1.1 == 1 | trade_management_3.1.2 == 1 | limit_pop_growth_3.1.3 == 1 | species_recovery_3.2 == 1 | reintroduction_3.3.1 == 1 | benign_reintroduction_3.3.2 ==1), 1, 0),
+         education_awareness = if_else((training_4.2 == 1 | awareness_communication_4.3 ==1), 1, 0),
+         law_policy = if_else((international_legislation_5.1.1 == 1 | national_legislation_5.1.2 == 1 | regional_legislation_5.1.3 == 1 | unspecified_legislation_5.1.4 == 1 | policies_regulation_5.2 == 1| complience_enforcement_5.4 == 1), 1, 0),
+         incentives = if_else((linked_enterprises_livelihood_alternatives_6.1 == 1 | conservation_payments_6.4 == 1), 1, 0),
+         external_capacity = if_else((institutional_civil_society_development_7.1 == 1 | alliance_partnership_development_7.2 == 1), 1, 0),
+         research = if_else((str_starts(cons_action_1, "r") | str_starts(cons_action_2, "r") | str_starts(cons_action_3, "r") | str_starts(cons_action_4, "r")),1 , 0),
+)
+
+ # Fix NAs in the research field 
+lpi_work8 <- lpi_work8 %>% 
+  mutate(research = case_when(research == 1 ~ 1,
+                              research == 0 ~ 0,
+                              TRUE ~ 0))
+
+
+
            
+# Add Cites data from the lpi - UPDATE: Doesn't make sense. equal number of pops in both groups (approx 2500 in total) are listed.
+
+lpi_work9 <- lpi_work8 %>% 
+  mutate(international_legislation_5.1.1 = if_else(CITES != "Not listed", 1, international_legislation_5.1.1))
            
  # Reduce the number of rows in order to check if whether the matching method works properly without having to run forever
  # Update - Not necessary. Problem is adding multiple conditions to the matching, for some reason forces matching procedure into an endless loop
 
-lpi_sample <- sample_n(lpi_work6, 100)
+ lpi_sample <- sample_n(lpi_work7, 100)
 
  # Reduce number of variables - should reduce time running. Updated and using full sample as the problem was with specifying multiple methods
 
-lpi_sample <- lpi_sample %>% 
-  select(treatment, Binomial, Country, ID)
+ lpi_sample <- lpi_sample %>% 
+  select(treatment, Species, Country, ID, ts_length)
 
-pre_match <- matchit(treatment ~ Species + Country, data = lpi_work6,
-                  method = "exact", distance = "glm")
+# Create matched sample
+  
+pre_match <- matchit(treatment ~ Species + Country, data = lpi_work7,
+                     method = "exact")
 
  # Extract matched data
 
@@ -340,7 +367,13 @@ lpi_cons <- lpi_match %>%
 
 lpi_control <- lpi_match %>% 
   filter(treatment == 0)
-  
+
+lpi_full_cons <- lpi_work7 %>% 
+  filter(treatment == 1)
+
+lpi_full_cont <- lpi_work7 %>% 
+  filter(treatment == 0)
+
 
 # Create infile and LPImain
 
@@ -356,3 +389,24 @@ create_infile(lpi_control, name = "lpi_control",  start_col_name = 'X1970', end_
 lpi_matched_control<-LPIMain(infile = "lpi_control_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
 ggplot_lpi(lpi_matched_cons, title = "Conservation", ylim=c(0.9, 3))+ggplot_lpi(lpi_matched_control, title ="Without conservation")
+
+# Run lpi trend creation on all species targeted by conservation and all not targeted individually
+ 
+ # Not targeted by conservation
+
+create_infile(lpi_full_cont, name = "lpi_full_cont",  start_col_name = 'X1970', end_col_name = 'X2015')
+
+lpi_full_cont_trend<-LPIMain(infile = "lpi_full_cont_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+no_conservation_full <- ggplot_lpi(lpi_full_cont_trend, title ="Without conservation - full sample")
+
+ # Targeted by conservation
+
+create_infile(lpi_full_cons, name = "lpi_full_cons",  start_col_name = 'X1970', end_col_name = 'X2015')
+
+lpi_full_cons_trend<-LPIMain(infile = "lpi_full_cons_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+conservation_full <- ggplot_lpi(lpi_full_cons_trend, title ="Conservation - full sample")
+
+
+conservation_full + no_conservation_full
