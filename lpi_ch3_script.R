@@ -147,7 +147,7 @@ lpi_work6 <- lpi_work5 %>%
 
 # Contruct pre-match object to check initial balance. 
 # Most variables are categorical and will be exact but potentially a few continuous (that we just created) - Update: This takes forever, even 
-# when specified super simple
+# when specified super simple. Something is wrong
 
  # Make sure all variables are in right format
 
@@ -329,7 +329,7 @@ lpi_work8 <- lpi_work7 %>%
          research = if_else((str_starts(cons_action_1, "r") | str_starts(cons_action_2, "r") | str_starts(cons_action_3, "r") | str_starts(cons_action_4, "r")),1 , 0),
 )
 
- # Fix NAs in the research field 
+ # Correct NAs in the research field to zeros 
 lpi_work8 <- lpi_work8 %>% 
   mutate(research = case_when(research == 1 ~ 1,
                               research == 0 ~ 0,
@@ -346,27 +346,49 @@ lpi_work9 <- lpi_work8 %>%
  # Reduce the number of rows in order to check if whether the matching method works properly without having to run forever
  # Update - Not necessary. Problem is adding multiple conditions to the matching, for some reason forces matching procedure into an endless loop
 
- lpi_sample <- sample_n(lpi_work7, 100)
+ lpi_sample <- sample_n(lpi_work8, 100)
 
  # Reduce number of variables - should reduce time running. Updated and using full sample as the problem was with specifying multiple methods
 
  lpi_sample <- lpi_sample %>% 
-  select(treatment, Species, Country, ID, ts_length)
+  select(treatment, Species, Country, ID, ts_length, start_year)
 
 # Create matched sample
   
-pre_match <- matchit(treatment ~ Species + Country, data = lpi_work7,
+pre_match <- matchit(treatment ~ Species + Country, data = lpi_work8,
                      method = "exact")
 
+pre_match_liberal <- matchit(treatment ~ Genus + Region, data = lpi_work8,
+                             method = "exact")
+
+# pre_match_strict <- matchit(treatment ~ Species + Country + start_year, data = lpi_sample,
+#                            distance = "mahalanobis", replace = FALSE, exact = ~ Species + Country)
+
  # Extract matched data
+
+# Liberal
+
+lpi_match_lib <- match.data(pre_match_liberal)
+
+lpi_cons_lib <- lpi_match_lib %>% 
+  filter(treatment == 1)
+
+lpi_control_lib <- lpi_match_lib %>% 
+  filter(treatment == 0)
+
+# Benchmark
 
 lpi_match <- match.data(pre_match)
 
 lpi_cons <- lpi_match %>% 
-  filter(treatment == 1)
+  filter(treatment == 1) #%>% 
+  #filter(Binomial != "Castor_fiber") # Excluding Eurasian Beaver
 
 lpi_control <- lpi_match %>% 
-  filter(treatment == 0)
+  filter(treatment == 0) #%>% 
+  #filter(Binomial != "Castor_fiber")
+
+# Full sample after excluding uncertain management
 
 lpi_full_cons <- lpi_work7 %>% 
   filter(treatment == 1)
@@ -379,6 +401,20 @@ lpi_full_cont <- lpi_work7 %>%
 
 # creatre infile and LPI main
 
+# Liberal
+
+create_infile(lpi_cons_lib, name = "lpi_cons_lib",  start_col_name = 'X1970', end_col_name = 'X2015')
+
+lpi_matched_cons_lib<-LPIMain(infile = "lpi_cons_lib_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+create_infile(lpi_control_lib, name = "lpi_control_lib",  start_col_name = 'X1970', end_col_name = 'X2015')
+
+lpi_matched_control_lib<-LPIMain(infile = "lpi_control_lib_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+ggplot_lpi(lpi_matched_cons_lib, title = "Conservation", ylim=c(0.9, 3))+ggplot_lpi(lpi_matched_control_lib, title ="Without conservation")
+
+
+# Benchmark
 
 create_infile(lpi_cons, name = "lpi_cons",  start_col_name = 'X1970', end_col_name = 'X2018')
 
@@ -388,7 +424,7 @@ create_infile(lpi_control, name = "lpi_control",  start_col_name = 'X1970', end_
 
 lpi_matched_control<-LPIMain(infile = "lpi_control_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
-ggplot_lpi(lpi_matched_cons, title = "Conservation", ylim=c(0.9, 3))+ggplot_lpi(lpi_matched_control, title ="Without conservation")
+ggplot_lpi(lpi_matched_cons, title = "Conservation", ylim=c(0.9, 3.5))+ggplot_lpi(lpi_matched_control, title ="Without conservation")
 
 # Run lpi trend creation on all species targeted by conservation and all not targeted individually
  
@@ -410,3 +446,47 @@ conservation_full <- ggplot_lpi(lpi_full_cons_trend, title ="Conservation - full
 
 
 conservation_full + no_conservation_full
+
+# Assume that all conservation targeted species had remaiend stable in the absence of conservation
+
+ # First we check how th lpi looks for the full sample after preparation
+
+lpi_all <- lpi%>% 
+  rename_with(.cols = '1970':'2018',function(x){paste0("X", x)})
+
+
+create_infile(lpi_all, name = "lpi_all",  start_col_name = 'X1970', end_col_name = 'X2015')
+
+lpi_all_trend<-LPIMain(infile = "lpi_all_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+lpi_all_trend <- lpi_all_trend %>% 
+  mutate(trend = "normal", 
+         year = 1970:2018) %>% 
+  filter(year < 2016)
+
+ggplot_lpi(lpi_all_trend)
+
+ # Replace all observed population counts for the managed group with a constant number and re-create the trend
+
+lpi_all_corrected <- lpi_all %>% 
+ mutate(across(X1970:X2018,
+                ~ if_else( Managed == 1 & .x != "NULL", '5', .x)))
+
+create_infile(lpi_all_corrected, name = "lpi_all_corrected",  start_col_name = 'X1970', end_col_name = 'X2015')
+
+lpi_all_trend_corrected<-LPIMain(infile = "lpi_all_corrected_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+lpi_all_trend_corrected <- lpi_all_trend_corrected %>% 
+  mutate(trend = "stable conservation pops",
+         year = 1970:2018) %>% 
+  filter(year < 2016)
+
+ # Bind the two together
+
+lpi_merged_trend <- bind_rows(lpi_all_trend, lpi_all_trend_corrected)
+
+lpi_merged_trend %>% 
+  ggplot(., aes(x = year, y = LPI_final, color = trend, fill = trend)) + 
+  geom_line() +
+  geom_ribbon(aes(ymin=CI_low, ymax=CI_high), linetype=2, alpha=0.1) +
+  theme_bw()
