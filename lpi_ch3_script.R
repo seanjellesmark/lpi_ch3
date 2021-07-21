@@ -466,11 +466,23 @@ lpi_all_trend <- lpi_all_trend %>%
 
 ggplot_lpi(lpi_all_trend)
 
+# Assign lpi data and start correcting it
+
+lpi_corrected <- lpi_all
+
+# Create a variable that indicates if population increase were caused by conservation
+
+lpi_all_corrected <- lpi_all_corrected %>% 
+  mutate(conservation_increase = if_else(Introduction == 1 | Recolonisation == 1 | Recruitment == 1 | Removal_of_threat == 1 | 
+                                           `Rural_to_urban migration` == 1 | Reintroduction == 1 | Range_shift == 1 | 
+                                           Legal_protection == 1 | Management == 1 | Unknown...163 == 1 | Other...164 == 1, 1, 0))
+         
  # Replace all observed population counts for the managed group with a constant number and re-create the trend
 
-lpi_all_corrected <- lpi_all %>% 
+lpi_all_corrected <- lpi_corrected %>% 
  mutate(across(X1970:X2018,
                 ~ if_else( Managed == 1 & .x != "NULL", '5', .x)))
+
 
 create_infile(lpi_all_corrected, name = "lpi_all_corrected",  start_col_name = 'X1970', end_col_name = 'X2015')
 
@@ -487,6 +499,8 @@ lpi_merged_trend <- bind_rows(lpi_all_trend, lpi_all_trend_corrected)
 
 lpi_merged_trend %>% 
   ggplot(., aes(x = year, y = LPI_final, color = trend, fill = trend)) + 
-  geom_line() +
-  geom_ribbon(aes(ymin=CI_low, ymax=CI_high), linetype=2, alpha=0.1) +
+  geom_line(size = 2) +
+  geom_ribbon(aes(ymin=CI_low, ymax=CI_high), linetype=3, alpha=0.1) +
   theme_bw()
+
+
