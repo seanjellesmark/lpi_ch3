@@ -13,6 +13,9 @@ library(tidyverse)
 library(patchwork)
 library(MatchIt)
 library(rlpi)
+library(ggmap)
+library(maptools)
+library(maps)
 
 # set wd for infile creation
 
@@ -346,20 +349,23 @@ lpi_work9 <- lpi_work8 %>%
  # Reduce the number of rows in order to check if whether the matching method works properly without having to run forever
  # Update - Not necessary. Problem is adding multiple conditions to the matching, for some reason forces matching procedure into an endless loop
 
- lpi_sample <- sample_n(lpi_work8, 100)
+ lpi_sample <- sample_n(lpi_work8, 1000)
 
  # Reduce number of variables - should reduce time running. Updated and using full sample as the problem was with specifying multiple methods
 
  lpi_sample <- lpi_sample %>% 
-  select(treatment, Species, Country, ID, ts_length, start_year)
+  select(treatment, Class, Binomial, Country, Region, ID, ts_length, start_year)
 
 # Create matched sample
   
-pre_match <- matchit(treatment ~ Species + Country, data = lpi_work8,
+pre_match <- matchit(treatment ~ Binomial + Country, data = lpi_work8,
                      method = "exact")
 
 pre_match_liberal <- matchit(treatment ~ Genus + Region, data = lpi_work8,
                              method = "exact")
+
+pre_match_continoues <- matchit(treatment ~ Class + Region + start_year, method = "nearest",
+                                exact = c("Class","Region"), data = lpi_sample)
 
 # pre_match_strict <- matchit(treatment ~ Species + Country + start_year, data = lpi_sample,
 #                            distance = "mahalanobis", replace = FALSE, exact = ~ Species + Country)
@@ -390,12 +396,40 @@ lpi_control <- lpi_match %>%
 
 # Full sample after excluding uncertain management
 
-lpi_full_cons <- lpi_work7 %>% 
+lpi_full_cons <- lpi_work8 %>% 
   filter(treatment == 1)
 
-lpi_full_cont <- lpi_work7 %>% 
+lpi_full_cont <- lpi_work8 %>% 
   filter(treatment == 0)
 
+# Descriptive stuff for start of result section
+
+ # Countries
+lpi_full_cont %>% 
+  summarise(country_n = n_distinct(Country))
+
+ # Conservation group
+lpi_full_cons %>% 
+  group_by(Class) %>% 
+  count()
+
+ # Control group
+lpi_full_cont %>% 
+  group_by(Class) %>% 
+  count()
+
+ # Plot points
+ 
+
+mapWorld <- borders("world", colour="gray50", fill="white")
+mp <- ggplot() + mapWorld
+mp + geom_point(data = lpi_work8, aes(x = Longitude, y = Latitude, color = factor(treatment)), alpha = 0.5) +
+  theme_bw()
+ 
+ # How many are utilized
+
+lpi_full_cons %>% 
+  summarise(n_util = sum(Utilised == 1))
 
 # Create infile and LPImain
 
@@ -468,20 +502,29 @@ ggplot_lpi(lpi_all_trend)
 
 # Assign lpi data and start correcting it
 
-lpi_corrected <- lpi_all
+lpi_all_corrected <- lpi_all
 
-# Create a variable that indicates if population increase were caused by conservation
+# Create a variable that indicates if population increase were caused by conservation 
+# REMEMBER TO DISCUSS WHICH VARIABLES TO INCLUDE WITH lOUISE AND MIKE
 
 lpi_all_corrected <- lpi_all_corrected %>% 
   mutate(conservation_increase = if_else(Introduction == 1 | Recolonisation == 1 | Recruitment == 1 | Removal_of_threat == 1 | 
                                            `Rural_to_urban migration` == 1 | Reintroduction == 1 | Range_shift == 1 | 
                                            Legal_protection == 1 | Management == 1 | Unknown...163 == 1 | Other...164 == 1, 1, 0))
-         
+
+# Alternative
+
+lpi_all_corrected <- lpi_all_corrected %>% 
+  mutate(conservation_increase = if_else(Introduction == 1 | Recolonisation == 1 | Recruitment == 1 | Removal_of_threat == 1 | 
+                                           Reintroduction == 1 | Range_shift == 1 | 
+                                           Legal_protection == 1 | Management == 1, 1, 0))
+
+
  # Replace all observed population counts for the managed group with a constant number and re-create the trend
 
-lpi_all_corrected <- lpi_corrected %>% 
+lpi_all_corrected <- lpi_all_corrected %>% 
  mutate(across(X1970:X2018,
-                ~ if_else( Managed == 1 & .x != "NULL", '5', .x)))
+                ~ if_else( Managed == 1 & conservation_increase == 1 & .x != "NULL", '5', .x)))
 
 
 create_infile(lpi_all_corrected, name = "lpi_all_corrected",  start_col_name = 'X1970', end_col_name = 'X2015')
@@ -504,3 +547,15 @@ lpi_merged_trend %>%
   theme_bw()
 
 
+# Create a trend
+
+
+cons_inc <- lpi_all_corrected %>% 
+  filter(conservation_increase == 1 & )
+
+
+create_infile(cons_inc, name = "cons_inc",  start_col_name = 'X1970', end_col_name = 'X2015')
+
+cons_inc_trend_corrected<-LPIMain(infile = "cons_inc_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+ggplot_lpi(cons_inc_trend_corrected, ylim=c(0, 1))
