@@ -128,8 +128,9 @@ lpi_work3 <- lpi_work2 %>%
   filter(!is.na(value)) %>% 
   mutate(start_year = min(year),
          last_year = max(year),
-         ts_length = last_year - start_year) %>% 
-  select(ID, start_year, last_year, ts_length) %>% 
+         ts_length = last_year - start_year,
+         n_obs = sum(year > 0)) %>% 
+  select(ID, start_year, last_year, ts_length, n_obs) %>% 
   distinct() %>% 
   ungroup()
 
@@ -364,8 +365,9 @@ pre_match <- matchit(treatment ~ Binomial + Country, data = lpi_work8,
 pre_match_liberal <- matchit(treatment ~ Genus + Region, data = lpi_work8,
                              method = "exact")
 
-pre_match_continoues <- matchit(treatment ~ Class + Region + start_year, method = "nearest",
-                                exact = c("Class","Region"), data = lpi_sample)
+
+pre_match_stringent <- matchit(treatment ~ Region + Class + start_year + last_year + n_obs, method = "nearest",
+                                exact = c("Region","Class"), data = lpi_work8)
 
 # pre_match_strict <- matchit(treatment ~ Species + Country + start_year, data = lpi_sample,
 #                            distance = "mahalanobis", replace = FALSE, exact = ~ Species + Country)
@@ -393,6 +395,19 @@ lpi_cons <- lpi_match %>%
 lpi_control <- lpi_match %>% 
   filter(treatment == 0) #%>% 
   #filter(Binomial != "Castor_fiber")
+
+# Continous strict counterfactual
+
+
+lpi_match_stringent <- match.data(pre_match_stringent)
+
+lpi_cons_stringent <- lpi_match_stringent %>% 
+  filter(treatment == 1) #%>% 
+#filter(Binomial != "Castor_fiber") # Excluding Eurasian Beaver
+
+lpi_control_stringent <- lpi_match_stringent %>% 
+  filter(treatment == 0) #%>% 
+#filter(Binomial != "Castor_fiber")
 
 # Full sample after excluding uncertain management
 
@@ -423,9 +438,22 @@ lpi_full_cont %>%
 
 mapWorld <- borders("world", colour="gray50", fill="white")
 mp <- ggplot() + mapWorld
-mp + geom_point(data = lpi_work8, aes(x = Longitude, y = Latitude, color = factor(treatment)), alpha = 0.5) +
-  theme_bw()
+
+lpi_loc <- lpi_work8 %>% 
+  mutate(Conservation = if_else(treatment == 1, "Conservation", "Control"))
+
+(cons_locations <- mp + geom_point(data = lpi_loc, aes(x = Longitude, y = Latitude, color = Conservation, shape = Conservation), size = 1.5) +
+  theme_bw() +
+  theme(legend.title = element_blank(),
+        legend.text = element_text(size=30),
+        text=element_text(size=30),
+        legend.position = "top") + 
+  guides(color = guide_legend(override.aes = list(size = 5))) +
+  scale_color_viridis_d(end = 0.7))
  
+#ggsave(filename = "C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Plots and tables/loc_cons.tiff",
+#       plot = cons_locations, compression = "lzw", width = 60, height = 40, dpi = 400, units = "cm")
+
  # How many are utilized
 
 lpi_full_cons %>% 
@@ -458,7 +486,7 @@ create_infile(lpi_control, name = "lpi_control",  start_col_name = 'X1970', end_
 
 lpi_matched_control<-LPIMain(infile = "lpi_control_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
-ggplot_lpi(lpi_matched_cons, title = "Conservation", ylim=c(0.9, 3.5))+ggplot_lpi(lpi_matched_control, title ="Without conservation")
+ggplot_lpi(lpi_matched_cons, title = "Conservation", ylim=c(0.9, 4.7))+ggplot_lpi(lpi_matched_control, title ="Without conservation")
 
 # Run lpi trend creation on all species targeted by conservation and all not targeted individually
  
@@ -476,12 +504,12 @@ create_infile(lpi_full_cons, name = "lpi_full_cons",  start_col_name = 'X1970', 
 
 lpi_full_cons_trend<-LPIMain(infile = "lpi_full_cons_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
-conservation_full <- ggplot_lpi(lpi_full_cons_trend, title ="Conservation - full sample")
+conservation_full <- ggplot_lpi(lpi_full_cons_trend, title ="Conservation - full sample", ylim=c(0.8, 2.5))
 
 
 conservation_full + no_conservation_full
 
-# Assume that all conservation targeted species had remaiend stable in the absence of conservation
+# Assume that all conservation targeted species had remained stable in the absence of conservation
 
  # First we check how th lpi looks for the full sample after preparation
 
@@ -540,22 +568,58 @@ lpi_all_trend_corrected <- lpi_all_trend_corrected %>%
 
 lpi_merged_trend <- bind_rows(lpi_all_trend, lpi_all_trend_corrected)
 
-lpi_merged_trend %>% 
+(global_cons_impact <- lpi_merged_trend %>% 
   ggplot(., aes(x = year, y = LPI_final, color = trend, fill = trend)) + 
   geom_line(size = 2) +
   geom_ribbon(aes(ymin=CI_low, ymax=CI_high), linetype=3, alpha=0.1) +
-  theme_bw()
+  theme_bw() +
+  theme(legend.title = element_blank(),
+        text=element_text(size=30)))
+  
+#ggsave(filename = "C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Plots and tables/global_cons_trend.tiff",
+#       plot = global_cons_impact, compression = "lzw", width = 50, height = 40, dpi = 400, units = "cm")
 
+# Plot conservation - Using same basic representation as in Bolam et al 2020 
 
-# Create a trend
+ # First, transform lpi_work8 into long format, stretching primary conservation and sub categories
 
+lpi_plot <- lpi_work8 %>% 
+  pivot_longer(land_water_protection:research,
+               names_to = "primary_action",
+               values_to = "action_type") 
 
-cons_inc <- lpi_all_corrected %>% 
-  filter(conservation_increase == 1 & )
+lpi_plot_filtered <- lpi_plot1 %>% 
+  pivot_longer(land_water_protection:research,
+               names_to = "primary_action",
+               values_to = "action_type") %>% 
+  filter(action_type == 1)
 
+lpi_plot1 <- lpi_work8 %>% 
+  pivot_longer(site_area_protection_1.1:harvest_trends_r3.2 ,
+               names_to = "cons_action",
+               values_to = "active") %>%
+  filter(active == 1)
+  
 
-create_infile(cons_inc, name = "cons_inc",  start_col_name = 'X1970', end_col_name = 'X2015')
+df <- lpi_plot1 %>%
+  group_by(cons_action) %>%
+  summarise(counts = n(),
+            percentage = (n()/nrow(lpi_plot1))*100)
+df
 
-cons_inc_trend_corrected<-LPIMain(infile = "cons_inc_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+lpi_plot_filtered %>% 
+  group_by(primary_action, Region) %>% 
+  summarise(counts = n()) %>% 
+  ggplot(., aes(x = counts, y = primary_action)) +
+  geom_bar(position = "stack", stat = "identity") +
+  geom_text(aes(label = counts), vjust = -0.3) + 
+  theme_pubclean() +
+  facet_wrap(~Region)
 
-ggplot_lpi(cons_inc_trend_corrected, ylim=c(0, 1))
+  
+# Create the bar plot. Use theme_pubclean() [in ggpubr]
+ggplot(lpi_plot_filtered, aes(x = counts, y = cons_type)) +
+  geom_bar(position = "stack", fill = cons_type, stat = "identity") +
+  geom_text(aes(label = counts), vjust = -0.3) + 
+  theme_pubclean() +
+  facet_wrap(~Region)
