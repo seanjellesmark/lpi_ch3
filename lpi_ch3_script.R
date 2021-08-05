@@ -16,7 +16,7 @@ library(rlpi)
 library(ggmap)
 library(maptools)
 library(maps)
-
+library(stringr)
 # set wd for infile creation
 
 setwd("C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/LPI_files")
@@ -535,12 +535,13 @@ lpi_all_corrected <- lpi_all
 # Create a variable that indicates if population increase were caused by conservation 
 # REMEMBER TO DISCUSS WHICH VARIABLES TO INCLUDE WITH lOUISE AND MIKE
 
+ # Using all pops 
 lpi_all_corrected <- lpi_all_corrected %>% 
   mutate(conservation_increase = if_else(Introduction == 1 | Recolonisation == 1 | Recruitment == 1 | Removal_of_threat == 1 | 
                                            `Rural_to_urban migration` == 1 | Reintroduction == 1 | Range_shift == 1 | 
                                            Legal_protection == 1 | Management == 1 | Unknown...163 == 1 | Other...164 == 1, 1, 0))
 
-# Alternative
+# Alternative restricted one - currently using this one
 
 lpi_all_corrected <- lpi_all_corrected %>% 
   mutate(conservation_increase = if_else(Introduction == 1 | Recolonisation == 1 | Recruitment == 1 | Removal_of_threat == 1 | 
@@ -599,23 +600,40 @@ lpi_plot1 <- lpi_work8 %>%
                names_to = "cons_action",
                values_to = "active") %>%
   filter(active == 1)
-  
 
-df <- lpi_plot1 %>%
-  group_by(cons_action) %>%
-  summarise(counts = n(),
+test2 <-lpi_plot1 %>% 
+  mutate(primary_cons_category = case_when(cons_action == "site_area_protection_1.1" ~ "Land & water protection",
+                                           str_detect(cons_action, regex("_2", ignore_case=TRUE)) ~ "Land & water management",
+                                           str_detect(cons_action, regex("_3", ignore_case=TRUE)) ~ "Species management",
+                                           str_detect(cons_action, regex("_4", ignore_case=TRUE)) ~ "Education & awareness",
+                                           str_detect(cons_action, regex("_5", ignore_case=TRUE)) ~ "Law & policy",
+                                           str_detect(cons_action, regex("_6", ignore_case=TRUE)) ~ "Livelihood, economic and other incentives",
+                                           str_detect(cons_action, regex("_7", ignore_case=TRUE)) ~ "External capacity building",
+                                           str_detect(cons_action, regex("_r", ignore_case=TRUE)) ~ "Research",
+                                           TRUE ~ "other"))  
+
+df <- test2 %>%
+  group_by(cons_action, primary_cons_category, Class) %>%
+  summarise(counts = n()) %>% 
+  group_by(Class) %>% 
+  mutate(percentage = (counts/sum(counts))*100)
+            
+            ,
             percentage = (n()/nrow(lpi_plot1))*100)
 df
 
-lpi_plot_filtered %>% 
-  group_by(primary_action, Region) %>% 
-  summarise(counts = n()) %>% 
-  ggplot(., aes(x = counts, y = primary_action)) +
-  geom_bar(position = "stack", stat = "identity") +
-  geom_text(aes(label = counts), vjust = -0.3) + 
+df %>% 
+  filter(primary_cons_category != "Research") %>% 
+  filter(Class %in% c("Actinopteri","Aves","Mammalia")) %>% 
+  ggplot(aes(x = percentage, y = reorder(cons_action, percentage), color = primary_cons_category, fill = primary_cons_category)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = counts), size = 6, color = "black") + 
   theme_pubclean() +
-  facet_wrap(~Region)
-
+  facet_wrap(~Class) +
+  theme(text=element_text(size=21),
+        legend.title = element_blank(),
+        axis.title.y = element_blank()) +
+  scale_fill_viridis_d()
   
 # Create the bar plot. Use theme_pubclean() [in ggpubr]
 ggplot(lpi_plot_filtered, aes(x = counts, y = cons_type)) +
