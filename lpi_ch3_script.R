@@ -536,10 +536,10 @@ lpi_all_corrected <- lpi_all
 # REMEMBER TO DISCUSS WHICH VARIABLES TO INCLUDE WITH lOUISE AND MIKE
 
  # Using all pops 
-lpi_all_corrected <- lpi_all_corrected %>% 
-  mutate(conservation_increase = if_else(Introduction == 1 | Recolonisation == 1 | Recruitment == 1 | Removal_of_threat == 1 | 
-                                           `Rural_to_urban migration` == 1 | Reintroduction == 1 | Range_shift == 1 | 
-                                           Legal_protection == 1 | Management == 1 | Unknown...163 == 1 | Other...164 == 1, 1, 0))
+# lpi_all_corrected <- lpi_all_corrected %>% 
+#  mutate(conservation_increase = if_else(Introduction == 1 | Recolonisation == 1 | Recruitment == 1 | Removal_of_threat == 1 | 
+#                                         `Rural_to_urban migration` == 1 | Reintroduction == 1 | Range_shift == 1 | 
+#                                         Legal_protection == 1 | Management == 1 | Unknown...163 == 1 | Other...164 == 1, 1, 0))
 
 # Alternative restricted one - currently using this one
 
@@ -584,24 +584,23 @@ lpi_merged_trend <- bind_rows(lpi_all_trend, lpi_all_trend_corrected)
 
  # First, transform lpi_work8 into long format, stretching primary conservation and sub categories
 
-lpi_plot <- lpi_work8 %>% 
-  pivot_longer(land_water_protection:research,
-               names_to = "primary_action",
-               values_to = "action_type") 
+# Not used. Instead mutate combined with case_when to create a primary category for each conservation action
+#lpi_plot_filtered <- lpi_plot1 %>% 
+#  pivot_longer(land_water_protection:research,
+#               names_to = "primary_action",
+#               values_to = "action_type") %>% 
+#  filter(action_type == 1)
 
-lpi_plot_filtered <- lpi_plot1 %>% 
-  pivot_longer(land_water_protection:research,
-               names_to = "primary_action",
-               values_to = "action_type") %>% 
-  filter(action_type == 1)
+# Long format so that each conservation action is a row. We need this to plot conservation actions grouped by primary category. Otherwise, each row
+# has a separate column for each primary category which is a mess to plot
 
-lpi_plot1 <- lpi_work8 %>% 
+lpi_work8_long <- lpi_work8 %>% 
   pivot_longer(site_area_protection_1.1:harvest_trends_r3.2 ,
                names_to = "cons_action",
                values_to = "active") %>%
   filter(active == 1)
 
-test2 <-lpi_plot1 %>% 
+lpi_work8_long1 <-lpi_work8_long %>% 
   mutate(primary_cons_category = case_when(cons_action == "site_area_protection_1.1" ~ "Land & water protection",
                                            str_detect(cons_action, regex("_2", ignore_case=TRUE)) ~ "Land & water management",
                                            str_detect(cons_action, regex("_3", ignore_case=TRUE)) ~ "Species management",
@@ -612,14 +611,12 @@ test2 <-lpi_plot1 %>%
                                            str_detect(cons_action, regex("_r", ignore_case=TRUE)) ~ "Research",
                                            TRUE ~ "other"))  
 
-df <- test2 %>%
+df <- lpi_work8_long1 %>%
   group_by(cons_action, primary_cons_category, Class) %>%
   summarise(counts = n()) %>% 
   group_by(Class) %>% 
   mutate(percentage = (counts/sum(counts))*100)
             
-            ,
-            percentage = (n()/nrow(lpi_plot1))*100)
 df
 
 df %>% 
@@ -635,9 +632,25 @@ df %>%
         axis.title.y = element_blank()) +
   scale_fill_viridis_d()
   
-# Create the bar plot. Use theme_pubclean() [in ggpubr]
-ggplot(lpi_plot_filtered, aes(x = counts, y = cons_type)) +
-  geom_bar(position = "stack", fill = cons_type, stat = "identity") +
-  geom_text(aes(label = counts), vjust = -0.3) + 
-  theme_pubclean() +
-  facet_wrap(~Region)
+# Check number of species in each class - excluding populations exclusively targeted by the research category
+
+lpi_work8_long1 %>% 
+  filter(primary_cons_category != "Research") %>% 
+  group_by(Class) %>% 
+  summarise(n_distinct(Binomial))
+
+
+# Check number of pops in each class
+
+lpi_work8_long1 %>% 
+  filter(primary_cons_category != "Research") %>% 
+  group_by(Class) %>% 
+  summarise(n_distinct(ID))
+
+# Check number of populations with research as the only management action - 41 pops
+lpi_work8_long1 %>% 
+  filter(primary_cons_category != "Research") %>% 
+  summarise(n_populations = n_distinct(ID))
+
+lpi_work8_long1 %>%  
+  summarise(n_populations = n_distinct(ID))
