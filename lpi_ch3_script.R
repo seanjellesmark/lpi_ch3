@@ -366,7 +366,7 @@ pre_match_liberal <- matchit(treatment ~ Genus + Region, data = lpi_work8,
                              method = "exact")
 
 
-pre_match_stringent <- matchit(treatment ~ Region + Class + start_year + last_year + n_obs, method = "nearest",
+pre_match_stringent <- matchit(treatment ~ Region + Class + ts_length, method = "nearest",
                                 exact = c("Region","Class"), data = lpi_work8)
 
 # pre_match_strict <- matchit(treatment ~ Species + Country + start_year, data = lpi_sample,
@@ -487,6 +487,18 @@ create_infile(lpi_control, name = "lpi_control",  start_col_name = 'X1970', end_
 lpi_matched_control<-LPIMain(infile = "lpi_control_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
 ggplot_lpi(lpi_matched_cons, title = "Conservation", ylim=c(0.9, 4.7))+ggplot_lpi(lpi_matched_control, title ="Without conservation")
+
+# Stringent
+
+create_infile(lpi_cons_stringent, name = "lpi_cons_stringent",  start_col_name = 'X1970', end_col_name = 'X2015')
+
+lpi_matched_cons_stringent<-LPIMain(infile = "lpi_cons_stringent_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+create_infile(lpi_control_stringent, name = "lpi_control_stringent",  start_col_name = 'X1970', end_col_name = 'X2015')
+
+lpi_matched_control_stringent<-LPIMain(infile = "lpi_control_stringent_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+ggplot_lpi(lpi_matched_cons_stringent, title = "Conservation", ylim=c(0.9, 3))+ggplot_lpi(lpi_matched_control_stringent, title ="Without conservation")
 
 # Run lpi trend creation on all species targeted by conservation and all not targeted individually
  
@@ -654,3 +666,44 @@ lpi_work8_long1 %>%
 
 lpi_work8_long1 %>%  
   summarise(n_populations = n_distinct(ID))
+
+# Mean length of time series 
+
+lpi_work8 %>% 
+  group_by(treatment) %>% 
+  summarise(mean_ts_length = mean(ts_length))
+
+# map showing length of ts
+
+mapWorld <- borders("world", colour="gray50", fill="white")
+mp <- ggplot() + mapWorld
+
+lpi_loc <- lpi_work8 %>% 
+  mutate(Conservation = if_else(treatment == 1, "Conservation", "Control"))
+
+(cons_length <- mp + geom_point(data = lpi_loc, aes(x = Longitude, y = Latitude, color = ts_length, shape = Conservation), size = 2) +
+    theme_bw() +
+    theme(legend.title = element_blank(),
+          legend.text = element_text(size=20),
+          text=element_text(size=30),
+          legend.position = "top") + 
+    guides(shape = guide_legend(override.aes = list(size = 5))) +
+    scale_color_viridis_c(end = 1))
+
+#ggsave(filename = "C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Plots and tables/length_cons.tiff",
+#       plot = cons_length, compression = "lzw", width = 60, height = 40, dpi = 400, units = "cm")
+
+# map showing starting year of ts
+
+(cons_start <- mp + geom_point(data = lpi_loc, aes(x = Longitude, y = Latitude, color = start_year, shape = Conservation), size = 2) +
+    theme_bw() +
+    theme(legend.title = element_blank(),
+          legend.text = element_text(size=10),
+          text=element_text(size=30),
+          legend.position = "top") + 
+    guides(shape = guide_legend(override.aes = list(size = 5))) +
+    scale_color_viridis_c(end = 1))
+  
+
+#ggsave(filename = "C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Plots and tables/start_cons.tiff",
+#       plot = cons_start, compression = "lzw", width = 60, height = 40, dpi = 400, units = "cm")
