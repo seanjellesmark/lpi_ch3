@@ -366,7 +366,7 @@ pre_match_liberal <- matchit(treatment ~ Genus + Region, data = lpi_work8,
                              method = "exact")
 
 
-pre_match_stringent <- matchit(treatment ~ Region + Class + ts_length, method = "nearest",
+pre_match_stringent <- matchit(treatment ~ Region + Class + ts_length + start_year, method = "nearest",
                                 exact = c("Region","Class"), data = lpi_work8)
 
 # pre_match_strict <- matchit(treatment ~ Species + Country + start_year, data = lpi_sample,
@@ -486,7 +486,10 @@ create_infile(lpi_control, name = "lpi_control",  start_col_name = 'X1970', end_
 
 lpi_matched_control<-LPIMain(infile = "lpi_control_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
-ggplot_lpi(lpi_matched_cons, title = "Conservation", ylim=c(0.9, 4.7))+ggplot_lpi(lpi_matched_control, title ="Without conservation")
+ggplot_lpi(lpi_matched_cons, title = "Conservation", ylim=c(0.9, 4.7)) + ggplot_lpi(lpi_matched_control, title ="Without conservation")
+
+a <- ggplot_lpi(lpi_matched_cons, title = "Conservation", ylim=c(0.9, 4.7)) 
+b <- ggplot_lpi(lpi_matched_control, title ="Without conservation")
 
 # Stringent
 
@@ -707,3 +710,60 @@ lpi_loc <- lpi_work8 %>%
 
 #ggsave(filename = "C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Plots and tables/start_cons.tiff",
 #       plot = cons_start, compression = "lzw", width = 60, height = 40, dpi = 400, units = "cm")
+
+
+# Sensitivity analysis - only ts >5 years - first, filtering after matching and then before matching
+
+ # filtering post-matching
+lpi_cons_sens <- lpi_match %>% 
+  filter(treatment == 1) %>% 
+  filter(ts_length > 5)
+
+lpi_control_sens <- lpi_match %>% 
+  filter(treatment == 0) %>% 
+  filter(ts_length > 5)
+
+create_infile(lpi_cons_sens, name = "lpi_cons_sens",  start_col_name = 'X1970', end_col_name = 'X2018')
+
+lpi_matched_cons_sens<-LPIMain(infile = "lpi_cons_sens_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+create_infile(lpi_control_sens, name = "lpi_control_sens",  start_col_name = 'X1970', end_col_name = 'X2018')
+
+lpi_matched_control_sens<-LPIMain(infile = "lpi_control_sens_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+ggplot_lpi(lpi_matched_cons_sens, title = "Conservation", ylim=c(0.9, 4.7))+ggplot_lpi(lpi_matched_control_sens, title ="Without conservation")
+
+c <- ggplot_lpi(lpi_matched_cons_sens, ylim=c(0.9, 4.7))
+d <- ggplot_lpi(lpi_matched_control_sens,)
+ # filtering pre-matching
+
+# Filter the original sample to all obs longer than 5 years and then match
+
+lpi_work8_edit <- lpi_work8 %>% 
+  filter(ts_length > 5)
+
+pre_match_edit <- matchit(treatment ~ Binomial + Country, data = lpi_work8_edit,
+                     method = "exact")
+
+lpi_match_edit <- match.data(pre_match_edit)
+
+lpi_cons_sens <- lpi_match_edit %>% 
+  filter(treatment == 1)
+
+lpi_control_sens <- lpi_match_edit %>% 
+  filter(treatment == 0) 
+
+create_infile(lpi_cons_sens, name = "lpi_cons_sens",  start_col_name = 'X1970', end_col_name = 'X2018')
+
+lpi_matched_cons_sens_post<-LPIMain(infile = "lpi_cons_sens_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+create_infile(lpi_control_sens, name = "lpi_control_sens",  start_col_name = 'X1970', end_col_name = 'X2018')
+
+lpi_matched_control_sens_post<-LPIMain(infile = "lpi_control_sens_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+ggplot_lpi(lpi_matched_cons_sens_post, title = "Conservation", ylim=c(0.9, 4.7))+ggplot_lpi(lpi_matched_control_sens_post, title ="Without conservation")
+
+e <- ggplot_lpi(lpi_matched_cons_sens_post,  ylim=c(0.9, 4.7))
+f <- ggplot_lpi(lpi_matched_control_sens_post)
+
+(a+labs(subtitle = 'all ts lengths') +b)/(c+labs(subtitle = 'post matching > 5 years')+d)/(e+labs(subtitle = 'pre matching > 5 years')+f)
