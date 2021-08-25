@@ -350,12 +350,12 @@ lpi_work9 <- lpi_work8 %>%
  # Reduce the number of rows in order to check if whether the matching method works properly without having to run forever
  # Update - Not necessary. Problem is adding multiple conditions to the matching, for some reason forces matching procedure into an endless loop
 
- lpi_sample <- sample_n(lpi_work8, 1000)
+ # pi_sample <- sample_n(lpi_work8, 1000)
 
  # Reduce number of variables - should reduce time running. Updated and using full sample as the problem was with specifying multiple methods
 
- lpi_sample <- lpi_sample %>% 
-  select(treatment, Class, Binomial, Country, Region, ID, ts_length, start_year)
+ # lpi_sample <- lpi_sample %>% 
+ # select(treatment, Class, Binomial, Country, Region, ID, ts_length, start_year)
 
 # Create matched sample
   
@@ -465,11 +465,11 @@ lpi_full_cons %>%
 
 # Liberal
 
-create_infile(lpi_cons_lib, name = "lpi_cons_lib",  start_col_name = 'X1970', end_col_name = 'X2015')
+create_infile(lpi_cons_lib, name = "lpi_cons_lib",  start_col_name = 'X1970', end_col_name = 'X2016')
 
 lpi_matched_cons_lib<-LPIMain(infile = "lpi_cons_lib_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
-create_infile(lpi_control_lib, name = "lpi_control_lib",  start_col_name = 'X1970', end_col_name = 'X2015')
+create_infile(lpi_control_lib, name = "lpi_control_lib",  start_col_name = 'X1970', end_col_name = 'X2016')
 
 lpi_matched_control_lib<-LPIMain(infile = "lpi_control_lib_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
@@ -478,11 +478,11 @@ ggplot_lpi(lpi_matched_cons_lib, title = "Conservation", ylim=c(0.9, 3))+ggplot_
 
 # Benchmark
 
-create_infile(lpi_cons, name = "lpi_cons",  start_col_name = 'X1970', end_col_name = 'X2018')
+create_infile(lpi_cons, name = "lpi_cons",  start_col_name = 'X1970', end_col_name = 'X2016')
 
 lpi_matched_cons<-LPIMain(infile = "lpi_cons_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
-create_infile(lpi_control, name = "lpi_control",  start_col_name = 'X1970', end_col_name = 'X2018')
+create_infile(lpi_control, name = "lpi_control",  start_col_name = 'X1970', end_col_name = 'X2016')
 
 lpi_matched_control<-LPIMain(infile = "lpi_control_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
@@ -493,11 +493,11 @@ b <- ggplot_lpi(lpi_matched_control, title ="Without conservation")
 
 # Stringent
 
-create_infile(lpi_cons_stringent, name = "lpi_cons_stringent",  start_col_name = 'X1970', end_col_name = 'X2015')
+create_infile(lpi_cons_stringent, name = "lpi_cons_stringent",  start_col_name = 'X1970', end_col_name = 'X2016')
 
 lpi_matched_cons_stringent<-LPIMain(infile = "lpi_cons_stringent_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
-create_infile(lpi_control_stringent, name = "lpi_control_stringent",  start_col_name = 'X1970', end_col_name = 'X2015')
+create_infile(lpi_control_stringent, name = "lpi_control_stringent",  start_col_name = 'X1970', end_col_name = 'X2016')
 
 lpi_matched_control_stringent<-LPIMain(infile = "lpi_control_stringent_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
@@ -507,7 +507,7 @@ ggplot_lpi(lpi_matched_cons_stringent, title = "Conservation", ylim=c(0.9, 3))+g
  
  # Not targeted by conservation
 
-create_infile(lpi_full_cont, name = "lpi_full_cont",  start_col_name = 'X1970', end_col_name = 'X2015')
+create_infile(lpi_full_cont, name = "lpi_full_cont",  start_col_name = 'X1970', end_col_name = 'X2016')
 
 lpi_full_cont_trend<-LPIMain(infile = "lpi_full_cont_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
@@ -515,7 +515,7 @@ no_conservation_full <- ggplot_lpi(lpi_full_cont_trend, title ="Without conserva
 
  # Targeted by conservation
 
-create_infile(lpi_full_cons, name = "lpi_full_cons",  start_col_name = 'X1970', end_col_name = 'X2015')
+create_infile(lpi_full_cons, name = "lpi_full_cons",  start_col_name = 'X1970', end_col_name = 'X2016')
 
 lpi_full_cons_trend<-LPIMain(infile = "lpi_full_cons_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
@@ -532,7 +532,7 @@ lpi_all <- lpi%>%
   rename_with(.cols = '1970':'2018',function(x){paste0("X", x)})
 
 
-create_infile(lpi_all, name = "lpi_all",  start_col_name = 'X1970', end_col_name = 'X2015')
+create_infile(lpi_all, name = "lpi_all",  start_col_name = 'X1970', end_col_name = 'X2016')
 
 lpi_all_trend<-LPIMain(infile = "lpi_all_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
@@ -571,14 +571,14 @@ lpi_all_corrected <- lpi_all_corrected %>%
                 ~ if_else( Managed == 1 & conservation_increase == 1 & .x != "NULL", '5', .x)))
 
 
-create_infile(lpi_all_corrected, name = "lpi_all_corrected",  start_col_name = 'X1970', end_col_name = 'X2015')
+create_infile(lpi_all_corrected, name = "lpi_all_corrected",  start_col_name = 'X1970', end_col_name = 'X2016')
 
 lpi_all_trend_corrected<-LPIMain(infile = "lpi_all_corrected_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
 lpi_all_trend_corrected <- lpi_all_trend_corrected %>% 
   mutate(trend = "stable conservation pops",
          year = 1970:2018) %>% 
-  filter(year < 2016)
+  filter(year < 2017)
 
  # Bind the two together
 
@@ -723,11 +723,11 @@ lpi_control_sens <- lpi_match %>%
   filter(treatment == 0) %>% 
   filter(ts_length > 5)
 
-create_infile(lpi_cons_sens, name = "lpi_cons_sens",  start_col_name = 'X1970', end_col_name = 'X2018')
+create_infile(lpi_cons_sens, name = "lpi_cons_sens",  start_col_name = 'X1970', end_col_name = 'X2016')
 
 lpi_matched_cons_sens<-LPIMain(infile = "lpi_cons_sens_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
-create_infile(lpi_control_sens, name = "lpi_control_sens",  start_col_name = 'X1970', end_col_name = 'X2018')
+create_infile(lpi_control_sens, name = "lpi_control_sens",  start_col_name = 'X1970', end_col_name = 'X2016')
 
 lpi_matched_control_sens<-LPIMain(infile = "lpi_control_sens_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
@@ -753,11 +753,11 @@ lpi_cons_sens <- lpi_match_edit %>%
 lpi_control_sens <- lpi_match_edit %>% 
   filter(treatment == 0) 
 
-create_infile(lpi_cons_sens, name = "lpi_cons_sens",  start_col_name = 'X1970', end_col_name = 'X2018')
+create_infile(lpi_cons_sens, name = "lpi_cons_sens",  start_col_name = 'X1970', end_col_name = 'X2016')
 
 lpi_matched_cons_sens_post<-LPIMain(infile = "lpi_cons_sens_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
-create_infile(lpi_control_sens, name = "lpi_control_sens",  start_col_name = 'X1970', end_col_name = 'X2018')
+create_infile(lpi_control_sens, name = "lpi_control_sens",  start_col_name = 'X1970', end_col_name = 'X2016')
 
 lpi_matched_control_sens_post<-LPIMain(infile = "lpi_control_sens_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
