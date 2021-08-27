@@ -396,7 +396,7 @@ lpi_bench_cont <- lpi_match_bench %>%
   filter(treatment == 0) #%>% 
   #filter(Binomial != "Castor_fiber")
 
-# Continous strict counterfactual
+# "Stringent" counterfactual
 
 
 lpi_match_stringent <- match.data(pre_match_stringent)
@@ -503,7 +503,7 @@ lpi_matched_control_stringent<-LPIMain(infile = "lpi_string_cont_infile.txt", VE
 
 ggplot_lpi(lpi_matched_cons_stringent, title = "Conservation", ylim=c(0.9, 3))+ggplot_lpi(lpi_matched_control_stringent, title ="Without conservation")
 
-# Run lpi trend creation on all species targeted by conservation and all not targeted individually
+# Run lpi trend creation on full LPI for all species targeted by conservation and all that are not targeted
  
  # Not targeted by conservation
 
@@ -524,6 +524,8 @@ conservation_full <- ggplot_lpi(lpi_full_cons_trend, title ="Conservation - full
 
 conservation_full + no_conservation_full
 
+## The approximation of the 2010 science paper by Hoffmann et al 2010 ----
+
 # Assume that all conservation targeted species had remained stable in the absence of conservation
 
  # First we check how th lpi looks for the full sample after preparation
@@ -539,7 +541,7 @@ lpi_all_trend<-LPIMain(infile = "lpi_all_infile.txt", VERBOSE = FALSE, REF_YEAR 
 lpi_all_trend <- lpi_all_trend %>% 
   mutate(trend = "normal", 
          year = 1970:2018) %>% 
-  filter(year < 2016)
+  filter(year < 2017)
 
 ggplot_lpi(lpi_all_trend)
 
@@ -594,6 +596,40 @@ lpi_merged_trend <- bind_rows(lpi_all_trend, lpi_all_trend_corrected)
   
 #ggsave(filename = "C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Plots and tables/global_cons_trend.tiff",
 #       plot = global_cons_impact, compression = "lzw", width = 50, height = 40, dpi = 400, units = "cm")
+
+
+# Create alternative counterfactual that also acocunts for collateral conservation
+
+# Replace all observed population counts for the managed group and for populations inside PAs with conservation as reason for increase 
+# with a constant number and re-create the trend
+
+lpi_all_corrected_PA <- lpi_all_corrected %>%
+  mutate(PA = if_else(Ramsar == 1 | WHS == 1 | Biosphere == 1 | Other_PA == 1, 1, 0))
+
+lpi_all_corrected_PA <- lpi_all_corrected_PA %>%
+  mutate(across(X1970:X2018,
+                ~ if_else( Managed == 1 & conservation_increase == 1 & .x != "NULL" |PA ==1  & conservation_increase == 1 & .x != "NULL", '5', .x)))
+
+
+create_infile(lpi_all_corrected_PA, name = "lpi_all_corrected_PA",  start_col_name = 'X1970', end_col_name = 'X2016')
+
+lpi_all_trend_corrected_PA<-LPIMain(infile = "lpi_all_corrected_PA_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+lpi_all_trend_corrected_PA <- lpi_all_trend_corrected_PA %>% 
+  mutate(trend = "PA stable conservation pops",
+         year = 1970:2018) %>% 
+  filter(year < 2017)
+
+lpi_merged_trend_PA <- bind_rows(lpi_all_trend, lpi_all_trend_corrected, lpi_all_trend_corrected_PA)
+
+(global_cons_impact <- lpi_merged_trend_PA %>% 
+    ggplot(., aes(x = year, y = LPI_final, color = trend, fill = trend)) + 
+    geom_line(size = 2) +
+    geom_ribbon(aes(ymin=CI_low, ymax=CI_high), linetype=3, alpha=0.1) +
+    theme_bw() +
+    theme(legend.title = element_blank(),
+          text=element_text(size=30),
+          legend.position = "bottom"))
 
 # Plot conservation - Using same basic representation as in Bolam et al 2020 
 
