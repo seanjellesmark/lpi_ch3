@@ -359,7 +359,7 @@ lpi_work9 <- lpi_work8 %>%
 
 # Create matched sample
   
-pre_match <- matchit(treatment ~ Binomial + Country, data = lpi_work8,
+pre_match_bench <- matchit(treatment ~ Binomial + Country, data = lpi_work8,
                      method = "exact")
 
 pre_match_liberal <- matchit(treatment ~ Genus + Region, data = lpi_work8,
@@ -378,21 +378,21 @@ pre_match_stringent <- matchit(treatment ~ Region + Class + ts_length + start_ye
 
 lpi_match_lib <- match.data(pre_match_liberal)
 
-lpi_cons_lib <- lpi_match_lib %>% 
+lpi_lib_cons <- lpi_match_lib %>% 
   filter(treatment == 1)
 
-lpi_control_lib <- lpi_match_lib %>% 
+lpi_lib_cons <- lpi_match_lib %>% 
   filter(treatment == 0)
 
 # Benchmark
 
-lpi_match <- match.data(pre_match)
+lpi_match_bench <- match.data(pre_match_bench)
 
-lpi_cons <- lpi_match %>% 
+lpi_bench_cons <- lpi_match_bench %>% 
   filter(treatment == 1) #%>% 
   #filter(Binomial != "Castor_fiber") # Excluding Eurasian Beaver
 
-lpi_control <- lpi_match %>% 
+lpi_bench_cont <- lpi_match_bench %>% 
   filter(treatment == 0) #%>% 
   #filter(Binomial != "Castor_fiber")
 
@@ -401,11 +401,11 @@ lpi_control <- lpi_match %>%
 
 lpi_match_stringent <- match.data(pre_match_stringent)
 
-lpi_cons_stringent <- lpi_match_stringent %>% 
+lpi_string_cons <- lpi_match_stringent %>% 
   filter(treatment == 1) #%>% 
 #filter(Binomial != "Castor_fiber") # Excluding Eurasian Beaver
 
-lpi_control_stringent <- lpi_match_stringent %>% 
+lpi_string_cont <- lpi_match_stringent %>% 
   filter(treatment == 0) #%>% 
 #filter(Binomial != "Castor_fiber")
 
@@ -465,26 +465,26 @@ lpi_full_cons %>%
 
 # Liberal
 
-create_infile(lpi_cons_lib, name = "lpi_cons_lib",  start_col_name = 'X1970', end_col_name = 'X2016')
+create_infile(lpi_lib_cons, name = "lpi_lib_cons",  start_col_name = 'X1970', end_col_name = 'X2016')
 
-lpi_matched_cons_lib<-LPIMain(infile = "lpi_cons_lib_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+lpi_matched_cons_lib<-LPIMain(infile = "lpi_lib_cons_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
-create_infile(lpi_control_lib, name = "lpi_control_lib",  start_col_name = 'X1970', end_col_name = 'X2016')
+create_infile(lpi_lib_cont, name = "lpi_lib_cont",  start_col_name = 'X1970', end_col_name = 'X2016')
 
-lpi_matched_control_lib<-LPIMain(infile = "lpi_control_lib_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+lpi_matched_control_lib<-LPIMain(infile = "lpi_lib_cont_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
 ggplot_lpi(lpi_matched_cons_lib, title = "Conservation", ylim=c(0.9, 3))+ggplot_lpi(lpi_matched_control_lib, title ="Without conservation")
 
 
 # Benchmark
 
-create_infile(lpi_cons, name = "lpi_cons",  start_col_name = 'X1970', end_col_name = 'X2016')
+create_infile(lpi_bench_cons, name = "lpi_bench_cons",  start_col_name = 'X1970', end_col_name = 'X2016')
 
-lpi_matched_cons<-LPIMain(infile = "lpi_cons_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+lpi_bench_cons<-LPIMain(infile = "lpi_bench_cons_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
-create_infile(lpi_control, name = "lpi_control",  start_col_name = 'X1970', end_col_name = 'X2016')
+create_infile(lpi_bench_cont, name = "lpi_bench_cont",  start_col_name = 'X1970', end_col_name = 'X2016')
 
-lpi_matched_control<-LPIMain(infile = "lpi_control_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+lpi_bench_cont<-LPIMain(infile = "lpi_bench_cont_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
 ggplot_lpi(lpi_matched_cons, title = "Conservation", ylim=c(0.9, 4.7)) + ggplot_lpi(lpi_matched_control, title ="Without conservation")
 
@@ -493,13 +493,13 @@ b <- ggplot_lpi(lpi_matched_control, title ="Without conservation")
 
 # Stringent
 
-create_infile(lpi_cons_stringent, name = "lpi_cons_stringent",  start_col_name = 'X1970', end_col_name = 'X2016')
+create_infile(lpi_string_cons, name = "lpi_string_cons",  start_col_name = 'X1970', end_col_name = 'X2016')
 
-lpi_matched_cons_stringent<-LPIMain(infile = "lpi_cons_stringent_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+lpi_matched_cons_stringent<-LPIMain(infile = "lpi_string_cons_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
-create_infile(lpi_control_stringent, name = "lpi_control_stringent",  start_col_name = 'X1970', end_col_name = 'X2016')
+create_infile(lpi_string_cont, name = "lpi_string_cont",  start_col_name = 'X1970', end_col_name = 'X2016')
 
-lpi_matched_control_stringent<-LPIMain(infile = "lpi_control_stringent_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+lpi_matched_control_stringent<-LPIMain(infile = "lpi_string_cont_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
 ggplot_lpi(lpi_matched_cons_stringent, title = "Conservation", ylim=c(0.9, 3))+ggplot_lpi(lpi_matched_control_stringent, title ="Without conservation")
 
@@ -712,58 +712,554 @@ lpi_loc <- lpi_work8 %>%
 #       plot = cons_start, compression = "lzw", width = 60, height = 40, dpi = 400, units = "cm")
 
 
-# Sensitivity analysis - only ts >5 years - first, filtering after matching and then before matching
+# Sensitivity analysis
 
- # filtering post-matching
-lpi_cons_sens <- lpi_match %>% 
-  filter(treatment == 1) %>% 
-  filter(ts_length > 5)
+# Full sample ----
+# Start with 5 year restriction
 
-lpi_control_sens <- lpi_match %>% 
-  filter(treatment == 0) %>% 
-  filter(ts_length > 5)
+# select ts > 5 years
 
-create_infile(lpi_cons_sens, name = "lpi_cons_sens",  start_col_name = 'X1970', end_col_name = 'X2016')
+lpi_full_cons5 <- lpi_work8 %>% 
+  filter(treatment == 1 & ts_length > 5)
 
-lpi_matched_cons_sens<-LPIMain(infile = "lpi_cons_sens_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+lpi_full_cont5 <- lpi_work8 %>% 
+  filter(treatment == 0 & ts_length > 5)
+# create infiles
 
-create_infile(lpi_control_sens, name = "lpi_control_sens",  start_col_name = 'X1970', end_col_name = 'X2016')
+create_infile(lpi_full_cons5, name = "lpi_full_cons5",  start_col_name = 'X1970', end_col_name = 'X2016')
 
-lpi_matched_control_sens<-LPIMain(infile = "lpi_control_sens_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+full_cons5<-LPIMain(infile = "lpi_full_cons5_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
-ggplot_lpi(lpi_matched_cons_sens, title = "Conservation", ylim=c(0.9, 4.7))+ggplot_lpi(lpi_matched_control_sens, title ="Without conservation")
+create_infile(lpi_full_cont5, name = "lpi_full_cont5",  start_col_name = 'X1970', end_col_name = 'X2016')
 
-c <- ggplot_lpi(lpi_matched_cons_sens, ylim=c(0.9, 4.7))
-d <- ggplot_lpi(lpi_matched_control_sens,)
- # filtering pre-matching
+full_cont5<-LPIMain(infile = "lpi_full_cont5_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
-# Filter the original sample to all obs longer than 5 years and then match
+ggplot_lpi(full_cons5, title = "Conservation", ylim=c(0.9, 4.7))+ggplot_lpi(full_cont5, title ="Without conservation")
 
-lpi_work8_edit <- lpi_work8 %>% 
-  filter(ts_length > 5)
+full_cons5_plot <- ggplot_lpi(full_cons5, title = "Full LPI - Conservation", ylim = c(0.9, 2.5))
+full_cont5_plot <- ggplot_lpi(full_cont5,title ="Without conservation", ylim = c(0.7, 1.2))
+full_cons5_plot + full_cont5_plot
 
-pre_match_edit <- matchit(treatment ~ Binomial + Country, data = lpi_work8_edit,
-                     method = "exact")
+# As above but restricted to ts > 10 
 
-lpi_match_edit <- match.data(pre_match_edit)
+lpi_full_cons10 <- lpi_work8 %>% 
+  filter(treatment == 1 & ts_length > 10)
 
-lpi_cons_sens <- lpi_match_edit %>% 
-  filter(treatment == 1)
+lpi_full_cont10 <- lpi_work8 %>% 
+  filter(treatment == 0 & ts_length > 10)
+# create infiles
 
-lpi_control_sens <- lpi_match_edit %>% 
-  filter(treatment == 0) 
+create_infile(lpi_full_cons10, name = "lpi_full_cons10",  start_col_name = 'X1970', end_col_name = 'X2016')
 
-create_infile(lpi_cons_sens, name = "lpi_cons_sens",  start_col_name = 'X1970', end_col_name = 'X2016')
+full_cons10<-LPIMain(infile = "lpi_full_cons10_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
-lpi_matched_cons_sens_post<-LPIMain(infile = "lpi_cons_sens_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+create_infile(lpi_full_cont10, name = "lpi_full_cont10",  start_col_name = 'X1970', end_col_name = 'X2016')
 
-create_infile(lpi_control_sens, name = "lpi_control_sens",  start_col_name = 'X1970', end_col_name = 'X2016')
+full_cont10<-LPIMain(infile = "lpi_full_cont10_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
-lpi_matched_control_sens_post<-LPIMain(infile = "lpi_control_sens_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+ggplot_lpi(full_cons10, title = "Conservation", ylim=c(0.9, 2.5))+ggplot_lpi(full_cont5, title ="Without conservation")
 
-ggplot_lpi(lpi_matched_cons_sens_post, title = "Conservation", ylim=c(0.9, 4.7))+ggplot_lpi(lpi_matched_control_sens_post, title ="Without conservation")
+full_cons10_plot <- ggplot_lpi(full_cons10, ylim=c(0.9, 2.5))
+full_cont10_plot <- ggplot_lpi(full_cont10, ylim = c(0.7, 1.2))
+full_cons10_plot + full_cont10_plot
 
-e <- ggplot_lpi(lpi_matched_cons_sens_post,  ylim=c(0.9, 4.7))
-f <- ggplot_lpi(lpi_matched_control_sens_post)
+# lastly, excluding 1% quantile to test the sensitivity to the extremes
 
-(a+labs(subtitle = 'all ts lengths') +b)/(c+labs(subtitle = 'post matching > 5 years')+d)/(e+labs(subtitle = 'pre matching > 5 years')+f)
+### Load lambda file (removing 1970) for the index you want to look at
+lambda_cons <- read.csv("lpi_full_cons_pops_Lambda.txt")
+lambda_cont <- read.csv("lpi_full_cont_pops_Lambda.txt")
+
+
+
+### Remove column with species names
+lambda2_cons <- lambda_cons[,-1]
+
+lambda2_cont <- lambda_cont[,-1]
+
+
+### Calculate the 95th or 99th quartile of the data set
+q95_cons <- quantile(as.matrix(lambda2_cons), c(0.05, 0.95), na.rm=TRUE)
+q99_cons <- quantile(as.matrix(lambda2_cons), c(0.01, 0.99), na.rm=TRUE)
+hist(as.numeric(as.vector(as.matrix(lambda2_cons))), breaks=10000)
+abline(v = q95_cons[1], col="red")
+abline(v = q95_cons[2], col="red")
+abline(v = q99_cons[1], col="pink")
+abline(v = q99_cons[2], col="pink")
+
+### Calculate the 95th or 99th quartile of the data set
+q95_cont <- quantile(as.matrix(lambda2_cont), c(0.05, 0.95), na.rm=TRUE)
+q99_cont <- quantile(as.matrix(lambda2_cont), c(0.01, 0.99), na.rm=TRUE)
+hist(as.numeric(as.vector(as.matrix(lambda2_cont))), breaks=10000)
+abline(v = q95_cont[1], col="red")
+abline(v = q95_cont[2], col="red")
+abline(v = q99_cont[1], col="pink")
+abline(v = q99_cont[2], col="pink")
+
+lower_cons <- q99_cons[1]
+higher_cons <- q99_cons[2]
+
+removed_cons <- as.matrix(lambda2_cons)
+
+
+lower_cont <- q99_cont[1]
+higher_cont <- q99_cont[2]
+
+removed_cont <- as.matrix(lambda2_cont)
+
+### Mark outliers with -9999
+removed_cons[removed_cons < lower | removed_cons > higher] = -9999
+range(removed_cons, na.rm =T)
+
+removed_cont[removed_cont < lower | removed_cont > higher] = -9999
+range(removed_cont, na.rm =T)
+
+### Replaces the numbers with the species names as rownames
+rownames(removed_cons) <- lambda_cons[, 1]
+
+rownames(removed_cont) <- lambda_cont[, 1]
+
+### Find species with outliers
+indices_cons <- which(removed_cons == -9999, arr.ind=TRUE)
+sp_to_be_removed_cons <- unique(rownames(indices_cons))
+sp_to_be_removed_cons
+
+indices_cont <- which(removed_cont == -9999, arr.ind=TRUE)
+sp_to_be_removed_cont <- unique(rownames(indices_cont))
+sp_to_be_removed_cont
+
+### How many outlier values are there
+sum(removed_cons == -9999, na.rm = T)
+
+sum(removed_cont == -9999, na.rm = T)
+
+
+#### Re-run the index calculation (print datapoint files) with the dataset cleared from outliers
+full_cons_nooutliers  = lpi_full_cons %>% 
+  filter(!Binomial %in% sp_to_be_removed)
+
+create_infile(full_cons_nooutliers, name = "full_cons_nooutliers", start_col_name = 'X1970', end_col_name = 'X2016')
+full_cons_index_nooutliers <- LPIMain("full_cons_nooutliers_infile.txt", REF_YEAR = 1970, PLOT_MAX = 2016)
+
+full_cont_nooutliers  = lpi_full_cont %>% 
+  filter(!Binomial %in% sp_to_be_removed)
+
+create_infile(full_cont_nooutliers, name = "full_cont_nooutliers", start_col_name = 'X1970', end_col_name = 'X2016')
+full_cont_index_nooutliers <- LPIMain("full_cont_nooutliers_infile.txt", REF_YEAR = 1970, PLOT_MAX = 2016)
+
+full_cons1percent_plot <- ggplot_lpi(full_cons_index_nooutliers, ylim=c(0.9, 2.5))
+full_cont1percent_plot <- ggplot_lpi(full_cont_index_nooutliers, ylim = c(0.7, 1.2))
+
+(full_cons5_plot + labs(subtitle = 'Time series > 5 year') + full_cont5_plot + labs(subtitle = 'Time series > 5 year'))/ 
+  (full_cons10_plot + labs(subtitle = 'Time series > 10 year') + full_cont10_plot + labs(subtitle = 'Time series > 10 year'))/ 
+  (full_cons1percent_plot + labs(subtitle = 'Upper and lower quantile removed') + full_cont1percent_plot + labs(subtitle = 'Upper and lower quantile removed'))
+
+## Scenario 1 (liberal) ----
+# select ts > 5 years
+
+lpi_lib_cons5 <- lpi_lib_cons %>% 
+  filter(treatment == 1 & ts_length > 5)
+
+lpi_lib_cont5 <- lpi_lib_cont %>% 
+  filter(treatment == 0 & ts_length > 5)
+# create infiles
+
+create_infile(lpi_lib_cons5, name = "lpi_lib_cons5",  start_col_name = 'X1970', end_col_name = 'X2016')
+
+lib_cons5<-LPIMain(infile = "lpi_lib_cons5_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+create_infile(lpi_lib_cont5, name = "lpi_lib_cont5",  start_col_name = 'X1970', end_col_name = 'X2016')
+
+lib_cont5<-LPIMain(infile = "lpi_lib_cont5_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+ggplot_lpi(lib_cons5, title = "Conservation", ylim=c(0.9, 4.7))+ggplot_lpi(lib_cont5, title ="Without conservation")
+
+lib_cons5_plot <- ggplot_lpi(lib_cons5, title = "lib LPI - Conservation", ylim = c(0.9, 2.5))
+lib_cont5_plot <- ggplot_lpi(lib_cont5,title ="Without conservation", ylim = c(0.7, 1.2))
+lib_cons5_plot + lib_cont5_plot
+
+# As above but restricted to ts > 10 
+
+lpi_lib_cons10 <- lpi_lib_cons %>% 
+  filter(treatment == 1 & ts_length > 10)
+
+lpi_lib_cont10 <- lpi_lib_cont %>% 
+  filter(treatment == 0 & ts_length > 10)
+# create infiles
+
+create_infile(lpi_lib_cons10, name = "lpi_lib_cons10",  start_col_name = 'X1970', end_col_name = 'X2016')
+
+lib_cons10<-LPIMain(infile = "lpi_lib_cons10_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+create_infile(lpi_lib_cont10, name = "lpi_lib_cont10",  start_col_name = 'X1970', end_col_name = 'X2016')
+
+lib_cont10<-LPIMain(infile = "lpi_lib_cont10_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+ggplot_lpi(lib_cons10, title = "Conservation", ylim=c(0.9, 2.5))+ggplot_lpi(lib_cont5, title ="Without conservation")
+
+lib_cons10_plot <- ggplot_lpi(lib_cons10, ylim=c(0.9, 2.5))
+lib_cont10_plot <- ggplot_lpi(lib_cont10, ylim = c(0.7, 1.2))
+lib_cons10_plot + lib_cont10_plot
+
+# lastly, excluding 1% quantile to test the sensitivity to the extremes
+
+### Load lambda file (removing 1970) for the index you want to look at
+lambda_cons <- read.csv("lpi_lib_cons_pops_Lambda.txt")
+lambda_cont <- read.csv("lpi_lib_cont_pops_Lambda.txt")
+
+
+
+### Remove column with species names
+lambda2_cons <- lambda_cons[,-1]
+
+lambda2_cont <- lambda_cont[,-1]
+
+
+### Calculate the 95th or 99th quartile of the data set
+q95_cons <- quantile(as.matrix(lambda2_cons), c(0.05, 0.95), na.rm=TRUE)
+q99_cons <- quantile(as.matrix(lambda2_cons), c(0.01, 0.99), na.rm=TRUE)
+hist(as.numeric(as.vector(as.matrix(lambda2_cons))), breaks=10000)
+abline(v = q95_cons[1], col="red")
+abline(v = q95_cons[2], col="red")
+abline(v = q99_cons[1], col="pink")
+abline(v = q99_cons[2], col="pink")
+
+### Calculate the 95th or 99th quartile of the data set
+q95_cont <- quantile(as.matrix(lambda2_cont), c(0.05, 0.95), na.rm=TRUE)
+q99_cont <- quantile(as.matrix(lambda2_cont), c(0.01, 0.99), na.rm=TRUE)
+hist(as.numeric(as.vector(as.matrix(lambda2_cont))), breaks=10000)
+abline(v = q95_cont[1], col="red")
+abline(v = q95_cont[2], col="red")
+abline(v = q99_cont[1], col="pink")
+abline(v = q99_cont[2], col="pink")
+
+lower_cons <- q99_cons[1]
+higher_cons <- q99_cons[2]
+
+removed_cons <- as.matrix(lambda2_cons)
+
+
+lower_cont <- q99_cont[1]
+higher_cont <- q99_cont[2]
+
+removed_cont <- as.matrix(lambda2_cont)
+
+### Mark outliers with -9999
+removed_cons[removed_cons < lower | removed_cons > higher] = -9999
+range(removed_cons, na.rm =T)
+
+removed_cont[removed_cont < lower | removed_cont > higher] = -9999
+range(removed_cont, na.rm =T)
+
+### Replaces the numbers with the species names as rownames
+rownames(removed_cons) <- lambda_cons[, 1]
+
+rownames(removed_cont) <- lambda_cont[, 1]
+
+### Find species with outliers
+indices_cons <- which(removed_cons == -9999, arr.ind=TRUE)
+sp_to_be_removed_cons <- unique(rownames(indices_cons))
+sp_to_be_removed_cons
+
+indices_cont <- which(removed_cont == -9999, arr.ind=TRUE)
+sp_to_be_removed_cont <- unique(rownames(indices_cont))
+sp_to_be_removed_cont
+
+### How many outlier values are there
+sum(removed_cons == -9999, na.rm = T)
+
+sum(removed_cont == -9999, na.rm = T)
+
+
+#### Re-run the index calculation (print datapoint files) with the dataset cleared from outliers
+lib_cons_nooutliers  = lpi_lib_cons %>% 
+  filter(!Binomial %in% sp_to_be_removed)
+
+create_infile(lib_cons_nooutliers, name = "lib_cons_nooutliers", start_col_name = 'X1970', end_col_name = 'X2016')
+lib_cons_index_nooutliers <- LPIMain("lib_cons_nooutliers_infile.txt", REF_YEAR = 1970, PLOT_MAX = 2016)
+
+lib_cont_nooutliers  = lpi_lib_cont %>% 
+  filter(!Binomial %in% sp_to_be_removed)
+
+create_infile(lib_cont_nooutliers, name = "lib_cont_nooutliers", start_col_name = 'X1970', end_col_name = 'X2016')
+lib_cont_index_nooutliers <- LPIMain("lib_cont_nooutliers_infile.txt", REF_YEAR = 1970, PLOT_MAX = 2016)
+
+lib_cons1percent_plot <- ggplot_lpi(lib_cons_index_nooutliers, ylim=c(0.9, 2.5))
+lib_cont1percent_plot <- ggplot_lpi(lib_cont_index_nooutliers, ylim = c(0.7, 1.5))
+
+(lib_cons5_plot + labs(subtitle = 'Time series > 5 year') + lib_cont5_plot + labs(subtitle = 'Time series > 5 year'))/ 
+  (lib_cons10_plot + labs(subtitle = 'Time series > 10 year') + lib_cont10_plot + labs(subtitle = 'Time series > 10 year'))/ 
+  (lib_cons1percent_plot + labs(subtitle = 'Upper and lower quantile removed') + lib_cont1percent_plot + labs(subtitle = 'Upper and lower quantile removed'))
+
+## Scenario 2 (benchmark) ----
+# select ts > 5 years
+
+lpi_bench_cons5 <- lpi_bench_cons %>% 
+  filter(treatment == 1 & ts_length > 5)
+
+lpi_bench_cont5 <- lpi_bench_cont %>% 
+  filter(treatment == 0 & ts_length > 5)
+# create infiles
+
+create_infile(lpi_bench_cons5, name = "lpi_bench_cons5",  start_col_name = 'X1970', end_col_name = 'X2016')
+
+bench_cons5<-LPIMain(infile = "lpi_bench_cons5_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+create_infile(lpi_bench_cont5, name = "lpi_bench_cont5",  start_col_name = 'X1970', end_col_name = 'X2016')
+
+bench_cont5<-LPIMain(infile = "lpi_bench_cont5_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+ggplot_lpi(bench_cons5, title = "Conservation", ylim=c(0.9, 4.7))+ggplot_lpi(bench_cont5, title ="Without conservation")
+
+bench_cons5_plot <- ggplot_lpi(bench_cons5, title = "bench LPI - Conservation", ylim = c(0.9, 4.1))
+bench_cont5_plot <- ggplot_lpi(bench_cont5,title ="Without conservation", ylim = c(0.6, 2.1))
+bench_cons5_plot + bench_cont5_plot
+
+# As above but restricted to ts > 10 
+
+lpi_bench_cons10 <- lpi_bench_cons %>% 
+  filter(treatment == 1 & ts_length > 10)
+
+lpi_bench_cont10 <- lpi_bench_cont %>% 
+  filter(treatment == 0 & ts_length > 10)
+# create infiles
+
+create_infile(lpi_bench_cons10, name = "lpi_bench_cons10",  start_col_name = 'X1970', end_col_name = 'X2016')
+
+bench_cons10<-LPIMain(infile = "lpi_bench_cons10_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+create_infile(lpi_bench_cont10, name = "lpi_bench_cont10",  start_col_name = 'X1970', end_col_name = 'X2016')
+
+bench_cont10<-LPIMain(infile = "lpi_bench_cont10_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+ggplot_lpi(bench_cons10, title = "Conservation", ylim=c(0.9, 2.5))+ggplot_lpi(bench_cont5, title ="Without conservation")
+
+bench_cons10_plot <- ggplot_lpi(bench_cons10, ylim=c(0.9, 4.1))
+bench_cont10_plot <- ggplot_lpi(bench_cont10, ylim = c(0.6, 2.6))
+bench_cons10_plot + bench_cont10_plot
+
+# lastly, excluding 1% quantile to test the sensitivity to the extremes
+
+### Load lambda file (removing 1970) for the index you want to look at
+lambda_cons <- read.csv("lpi_bench_cons_pops_Lambda.txt")
+lambda_cont <- read.csv("lpi_bench_cont_pops_Lambda.txt")
+
+
+
+### Remove column with species names
+lambda2_cons <- lambda_cons[,-1]
+
+lambda2_cont <- lambda_cont[,-1]
+
+
+### Calculate the 95th or 99th quartile of the data set
+q95_cons <- quantile(as.matrix(lambda2_cons), c(0.05, 0.95), na.rm=TRUE)
+q99_cons <- quantile(as.matrix(lambda2_cons), c(0.01, 0.99), na.rm=TRUE)
+hist(as.numeric(as.vector(as.matrix(lambda2_cons))), breaks=10000)
+abline(v = q95_cons[1], col="red")
+abline(v = q95_cons[2], col="red")
+abline(v = q99_cons[1], col="pink")
+abline(v = q99_cons[2], col="pink")
+
+### Calculate the 95th or 99th quartile of the data set
+q95_cont <- quantile(as.matrix(lambda2_cont), c(0.05, 0.95), na.rm=TRUE)
+q99_cont <- quantile(as.matrix(lambda2_cont), c(0.01, 0.99), na.rm=TRUE)
+hist(as.numeric(as.vector(as.matrix(lambda2_cont))), breaks=10000)
+abline(v = q95_cont[1], col="red")
+abline(v = q95_cont[2], col="red")
+abline(v = q99_cont[1], col="pink")
+abline(v = q99_cont[2], col="pink")
+
+lower_cons <- q99_cons[1]
+higher_cons <- q99_cons[2]
+
+removed_cons <- as.matrix(lambda2_cons)
+
+
+lower_cont <- q99_cont[1]
+higher_cont <- q99_cont[2]
+
+removed_cont <- as.matrix(lambda2_cont)
+
+### Mark outliers with -9999
+removed_cons[removed_cons < lower | removed_cons > higher] = -9999
+range(removed_cons, na.rm =T)
+
+removed_cont[removed_cont < lower | removed_cont > higher] = -9999
+range(removed_cont, na.rm =T)
+
+### Replaces the numbers with the species names as rownames
+rownames(removed_cons) <- lambda_cons[, 1]
+
+rownames(removed_cont) <- lambda_cont[, 1]
+
+### Find species with outliers
+indices_cons <- which(removed_cons == -9999, arr.ind=TRUE)
+sp_to_be_removed_cons <- unique(rownames(indices_cons))
+sp_to_be_removed_cons
+
+indices_cont <- which(removed_cont == -9999, arr.ind=TRUE)
+sp_to_be_removed_cont <- unique(rownames(indices_cont))
+sp_to_be_removed_cont
+
+### How many outlier values are there
+sum(removed_cons == -9999, na.rm = T)
+
+sum(removed_cont == -9999, na.rm = T)
+
+
+#### Re-run the index calculation (print datapoint files) with the dataset cleared from outliers
+bench_cons_nooutliers  = lpi_bench_cons %>% 
+  filter(!Binomial %in% sp_to_be_removed)
+
+create_infile(bench_cons_nooutliers, name = "bench_cons_nooutliers", start_col_name = 'X1970', end_col_name = 'X2016')
+bench_cons_index_nooutliers <- LPIMain("bench_cons_nooutliers_infile.txt", REF_YEAR = 1970, PLOT_MAX = 2016)
+
+bench_cont_nooutliers  = lpi_bench_cont %>% 
+  filter(!Binomial %in% sp_to_be_removed)
+
+create_infile(bench_cont_nooutliers, name = "bench_cont_nooutliers", start_col_name = 'X1970', end_col_name = 'X2016')
+bench_cont_index_nooutliers <- LPIMain("bench_cont_nooutliers_infile.txt", REF_YEAR = 1970, PLOT_MAX = 2016)
+
+bench_cons1percent_plot <- ggplot_lpi(bench_cons_index_nooutliers, ylim=c(0.9, 4.1))
+bench_cont1percent_plot <- ggplot_lpi(bench_cont_index_nooutliers, ylim = c(0.6, 2.6))
+
+(bench_cons5_plot + labs(subtitle = 'Time series > 5 year') + bench_cont5_plot + labs(subtitle = 'Time series > 5 year'))/ 
+  (bench_cons10_plot + labs(subtitle = 'Time series > 10 year') + bench_cont10_plot + labs(subtitle = 'Time series > 10 year'))/ 
+  (bench_cons1percent_plot + labs(subtitle = 'Upper and lower quantile removed') + bench_cont1percent_plot + labs(subtitle = 'Upper and lower quantile removed'))
+
+## Scenario 3 (stringent) ----
+# select ts > 5 years
+
+lpi_string_cons5 <- lpi_string_cons %>% 
+  filter(treatment == 1 & ts_length > 5)
+
+lpi_string_cont5 <- lpi_string_cont %>% 
+  filter(treatment == 0 & ts_length > 5)
+# create infiles
+
+create_infile(lpi_string_cons5, name = "lpi_string_cons5",  start_col_name = 'X1970', end_col_name = 'X2016')
+
+string_cons5<-LPIMain(infile = "lpi_string_cons5_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+create_infile(lpi_string_cont5, name = "lpi_string_cont5",  start_col_name = 'X1970', end_col_name = 'X2016')
+
+string_cont5<-LPIMain(infile = "lpi_string_cont5_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+ggplot_lpi(string_cons5, title = "Conservation", ylim=c(0.9, 4.7))+ggplot_lpi(string_cont5, title ="Without conservation")
+
+string_cons5_plot <- ggplot_lpi(string_cons5, title = "string LPI - Conservation", ylim = c(0.9, 4.1))
+string_cont5_plot <- ggplot_lpi(string_cont5,title ="Without conservation", ylim = c(0.6, 2.1))
+string_cons5_plot + string_cont5_plot
+
+# As above but restricted to ts > 10 
+
+lpi_string_cons10 <- lpi_string_cons %>% 
+  filter(treatment == 1 & ts_length > 10)
+
+lpi_string_cont10 <- lpi_string_cont %>% 
+  filter(treatment == 0 & ts_length > 10)
+# create infiles
+
+create_infile(lpi_string_cons10, name = "lpi_string_cons10",  start_col_name = 'X1970', end_col_name = 'X2016')
+
+string_cons10<-LPIMain(infile = "lpi_string_cons10_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+create_infile(lpi_string_cont10, name = "lpi_string_cont10",  start_col_name = 'X1970', end_col_name = 'X2016')
+
+string_cont10<-LPIMain(infile = "lpi_string_cont10_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+ggplot_lpi(string_cons10, title = "Conservation", ylim=c(0.9, 2.5))+ggplot_lpi(string_cont5, title ="Without conservation")
+
+string_cons10_plot <- ggplot_lpi(string_cons10, ylim=c(0.9, 4.1))
+string_cont10_plot <- ggplot_lpi(string_cont10, ylim = c(0.6, 2.6))
+string_cons10_plot + string_cont10_plot
+
+# lastly, excluding 1% quantile to test the sensitivity to the extremes
+
+### Load lambda file (removing 1970) for the index you want to look at
+lambda_cons <- read.csv("lpi_string_cons_pops_Lambda.txt")
+lambda_cont <- read.csv("lpi_string_cont_pops_Lambda.txt")
+
+
+
+### Remove column with species names
+lambda2_cons <- lambda_cons[,-1]
+
+lambda2_cont <- lambda_cont[,-1]
+
+
+### Calculate the 95th or 99th quartile of the data set
+q95_cons <- quantile(as.matrix(lambda2_cons), c(0.05, 0.95), na.rm=TRUE)
+q99_cons <- quantile(as.matrix(lambda2_cons), c(0.01, 0.99), na.rm=TRUE)
+hist(as.numeric(as.vector(as.matrix(lambda2_cons))), breaks=10000)
+abline(v = q95_cons[1], col="red")
+abline(v = q95_cons[2], col="red")
+abline(v = q99_cons[1], col="pink")
+abline(v = q99_cons[2], col="pink")
+
+### Calculate the 95th or 99th quartile of the data set
+q95_cont <- quantile(as.matrix(lambda2_cont), c(0.05, 0.95), na.rm=TRUE)
+q99_cont <- quantile(as.matrix(lambda2_cont), c(0.01, 0.99), na.rm=TRUE)
+hist(as.numeric(as.vector(as.matrix(lambda2_cont))), breaks=10000)
+abline(v = q95_cont[1], col="red")
+abline(v = q95_cont[2], col="red")
+abline(v = q99_cont[1], col="pink")
+abline(v = q99_cont[2], col="pink")
+
+lower_cons <- q99_cons[1]
+higher_cons <- q99_cons[2]
+
+removed_cons <- as.matrix(lambda2_cons)
+
+
+lower_cont <- q99_cont[1]
+higher_cont <- q99_cont[2]
+
+removed_cont <- as.matrix(lambda2_cont)
+
+### Mark outliers with -9999
+removed_cons[removed_cons < lower | removed_cons > higher] = -9999
+range(removed_cons, na.rm =T)
+
+removed_cont[removed_cont < lower | removed_cont > higher] = -9999
+range(removed_cont, na.rm =T)
+
+### Replaces the numbers with the species names as rownames
+rownames(removed_cons) <- lambda_cons[, 1]
+
+rownames(removed_cont) <- lambda_cont[, 1]
+
+### Find species with outliers
+indices_cons <- which(removed_cons == -9999, arr.ind=TRUE)
+sp_to_be_removed_cons <- unique(rownames(indices_cons))
+sp_to_be_removed_cons
+
+indices_cont <- which(removed_cont == -9999, arr.ind=TRUE)
+sp_to_be_removed_cont <- unique(rownames(indices_cont))
+sp_to_be_removed_cont
+
+### How many outlier values are there
+sum(removed_cons == -9999, na.rm = T)
+
+sum(removed_cont == -9999, na.rm = T)
+
+
+#### Re-run the index calculation (print datapoint files) with the dataset cleared from outliers
+string_cons_nooutliers  = lpi_string_cons %>% 
+  filter(!Binomial %in% sp_to_be_removed)
+
+create_infile(string_cons_nooutliers, name = "string_cons_nooutliers", start_col_name = 'X1970', end_col_name = 'X2016')
+string_cons_index_nooutliers <- LPIMain("string_cons_nooutliers_infile.txt", REF_YEAR = 1970, PLOT_MAX = 2016)
+
+string_cont_nooutliers  = lpi_string_cont %>% 
+  filter(!Binomial %in% sp_to_be_removed)
+
+create_infile(string_cont_nooutliers, name = "string_cont_nooutliers", start_col_name = 'X1970', end_col_name = 'X2016')
+string_cont_index_nooutliers <- LPIMain("string_cont_nooutliers_infile.txt", REF_YEAR = 1970, PLOT_MAX = 2016)
+
+string_cons1percent_plot <- ggplot_lpi(string_cons_index_nooutliers, ylim=c(0.9, 4.1))
+string_cont1percent_plot <- ggplot_lpi(string_cont_index_nooutliers, ylim = c(0.6, 2.6))
+
+(string_cons5_plot + labs(subtitle = 'Time series > 5 year') + string_cont5_plot + labs(subtitle = 'Time series > 5 year'))/ 
+  (string_cons10_plot + labs(subtitle = 'Time series > 10 year') + string_cont10_plot + labs(subtitle = 'Time series > 10 year'))/ 
+  (string_cons1percent_plot + labs(subtitle = 'Upper and lower quantile removed') + string_cont1percent_plot + labs(subtitle = 'Upper and lower quantile removed'))
