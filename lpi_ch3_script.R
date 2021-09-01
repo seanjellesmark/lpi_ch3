@@ -17,6 +17,7 @@ library(ggmap)
 library(maptools)
 library(maps)
 library(stringr)
+library(INLA)
 # set wd for infile creation
 
 setwd("C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/LPI_files")
@@ -89,7 +90,7 @@ lpi_work <- lpi %>%
   filter(Managed != 2)
 
 # Remember to filter for other conditions so aggregated national trends are removed. Have to figure out the best way to do so - Update
-#  Easiest done using the Scale Field in the LPD.
+#  Easiest done using the Scale Field in the LPD. Update - Not necessary at national aggregated trends won't have conservation actions recorded
 
 lpi_work %>%
   group_by(Scale) %>% 
@@ -563,7 +564,7 @@ lpi_all_corrected <- lpi_all
 lpi_all_corrected <- lpi_all_corrected %>% 
   mutate(conservation_increase = if_else(Introduction == 1 | Recolonisation == 1 | Recruitment == 1 | Removal_of_threat == 1 | 
                                            Reintroduction == 1 | Range_shift == 1 | 
-                                           Legal_protection == 1 | Management == 1, 1, 0))
+                                           Legal_protection == 1 | Management == 1, 1, 0)) # Remove recruitment, recolonisation and range shift
 
 
  # Replace all observed population counts for the managed group with a constant number and re-create the trend
@@ -631,6 +632,17 @@ lpi_merged_trend_PA <- bind_rows(lpi_all_trend, lpi_all_trend_corrected, lpi_all
           text=element_text(size=30),
           legend.position = "bottom"))
 
+# Test sensitivity of these pops following similar approach as below(ts > (5 & 10) and remove upper and lower quantiles) ----
+# Discuss with Mike and Louise whether this makes sense before doing it. Do regressions instead 30/08/2021.
+ # 5 years
+lpi_all5 <- lpi_all %>% 
+  filter(ts_length)
+
+lpi_all_corrected5 <- lpi_all_corrected %>% 
+  filter(ts_length > 5)
+
+lpi_all_corrected_PA5 <- lpi_all_corrected_PA %>% 
+  filter(ts_length > 5)
 # Plot conservation - Using same basic representation as in Bolam et al 2020 
 
  # First, transform lpi_work8 into long format, stretching primary conservation and sub categories
@@ -1212,7 +1224,7 @@ string_cons10_plot + string_cont10_plot
 
 # lastly, excluding 1% quantile to test the sensitivity to the extremes
 
-### Load lambda file (removing 1970) for the index you want to look at
+### Load lambda file 
 lambda_cons <- read.csv("lpi_string_cons_pops_Lambda.txt")
 lambda_cont <- read.csv("lpi_string_cont_pops_Lambda.txt")
 
@@ -1299,3 +1311,98 @@ string_cont1percent_plot <- ggplot_lpi(string_cont_index_nooutliers, ylim = c(0.
 (string_cons5_plot + labs(subtitle = 'Time series > 5 year') + string_cont5_plot + labs(subtitle = 'Time series > 5 year'))/ 
   (string_cons10_plot + labs(subtitle = 'Time series > 10 year') + string_cont10_plot + labs(subtitle = 'Time series > 10 year'))/ 
   (string_cons1percent_plot + labs(subtitle = 'Upper and lower quantile removed') + string_cont1percent_plot + labs(subtitle = 'Upper and lower quantile removed'))
+
+
+# Regression tests using Mcrae 2020 and Wauchope 2020 approach ----
+# First, using Louise's approach where lambda values are summarized. Update - run infile and LPIMain for lpi_work instead of binding rows from individual
+# conservation and control sample. Npops drops for whatever reason from 14448 pops in lpi_work8 to 14433 pops in row combined conservation + control sample      
+
+lambda_test <- read.csv("lpi_full_cons_pops_PopLambda.txt") %>% 
+  rename(ID = 1)
+
+
+lambda_test1 <- read.csv("lpi_full_cont_pops_PopLambda.txt") %>% 
+  rename(ID = 1)
+
+lambda_full_lpi <- bind_rows(lambda_test, lambda_test1) # 14433 pops - 15 pops are removed using this method. Ask Louise why
+
+# Add population data to the lambda values
+
+lpi_info <- lpi_work8 %>% 
+  select(everything(), - c(X1970:X2018)) %>% 
+  select(everything(), -c('1950':'2019')) 
+
+lambda_full <- left_join(lambda_full_lpi, lpi_info, by = "ID")
+
+# Pivot lambda values to long format
+
+lambda_full_long <- lambda_full %>% 
+  pivot_longer(X1970:X2016,
+               names_to = "year",
+               values_to = "lambda") 
+
+# Remove - 1 as these are NAs and index values of 1 starting in the index year
+
+lambda_df <- lambda_full_long %>% 
+  filter(lambda != -1 )%>% 
+  filter(year != "X1970" & lambda != 1)
+
+# Summarise lambdas and join to lambda_df
+
+lambda_sums <- lambda_df %>% 
+  group_by(ID) %>% 
+  summarise(lambda_sum = sum(lambda)) %>% 
+  ungroup()
+
+lambda_df <- left_join(lambda_df, lambda_sums, by = "ID")
+
+# Reduce so that each pop is presented by a single row
+
+lambda_df_sum <- lambda_df %>% 
+  select(everything(), -c(lambda, year)) %>% 
+  distinct()
+
+# Test in INLA as I don't remember the syntax of the other packages. Use default priors. Also, random effects might be a bit different here than 
+# in Louise's paper so remmeber to check that (She is probably nesting species in class)
+
+Louise_region <- inla(lambda_sum ~ 0 + ts_length + treatment +
+                        f(Class, model = "iid") +
+                        f(Region, model = "iid"),
+                      family = "gaussian",
+                      data = lambda_df_sum)
+
+summary(Louise_region)
+
+# Try similar specification using lme4 but random structure more similar to Louise's paper
+
+library(lme4)
+
+# Targeted vs not targeted
+
+mixed.lmer <- lmer(lambda_sum ~ 0 + ts_length + treatment + Class + (1|Family/Binomial) + (1|Country), data = lambda_df_sum)
+
+summary(mixed.lmer)
+
+# Level 2 conservation categories
+
+mixed.lmer1 <- lmer(lambda_sum ~ 0 + ts_length + land_water_protection + land_water_management + 
+                      species_management + education_awareness + law_policy + incentives + external_capacity + research +  
+                      Class + (1|Family/Binomial) + (1|Country), data = lambda_df_sum)
+
+
+summary(mixed.lmer1)
+
+# Wauchope's method. Slightly tweaked as we do not have BA but more like CI instead.
+
+# First, get rid of the X in the year variable and make sure it
+
+lambda_df <- lambda_df %>% 
+  mutate(year = str_remove(year, "X"))
+
+lambda_df$year <- as.numeric(lambda_df$year)
+
+# Specify model
+
+mixed.ci <- lmer(lambda ~ 0 + year + treatment + Class + (1|ID) + (1|Country), data = lambda_df)
+
+summary(mixed.ci)
