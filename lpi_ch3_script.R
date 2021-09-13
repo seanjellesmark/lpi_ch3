@@ -382,7 +382,7 @@ lpi_match_lib <- match.data(pre_match_liberal)
 lpi_lib_cons <- lpi_match_lib %>% 
   filter(treatment == 1)
 
-lpi_lib_cons <- lpi_match_lib %>% 
+lpi_lib_cont <- lpi_match_lib %>% 
   filter(treatment == 0)
 
 # Benchmark
@@ -487,7 +487,7 @@ create_infile(lpi_bench_cont, name = "lpi_bench_cont",  start_col_name = 'X1970'
 
 lpi_bench_cont<-LPIMain(infile = "lpi_bench_cont_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
 
-ggplot_lpi(lpi_matched_cons, title = "Conservation", ylim=c(0.9, 4.7)) + ggplot_lpi(lpi_matched_control, title ="Without conservation")
+ggplot_lpi(lpi_bench_cons, title = "Conservation", ylim=c(0.9, 4.7)) + ggplot_lpi(lpi_bench_cont, title ="Without conservation")
 
 a <- ggplot_lpi(lpi_matched_cons, title = "Conservation", ylim=c(0.9, 4.7)) 
 b <- ggplot_lpi(lpi_matched_control, title ="Without conservation")
@@ -632,6 +632,19 @@ lpi_merged_trend_PA <- bind_rows(lpi_all_trend, lpi_all_trend_corrected, lpi_all
           text=element_text(size=30),
           legend.position = "bottom"))
 
+## # Relabel factors for balloon plot ----
+
+lpi_work9 <- lpi_work8 %>% 
+  mutate(across(land_water_management:research,
+                ~case_when(.x == 0 ~ "Not targeted",
+                           TRUE ~ "Targeted")))
+
+lpi_work10 <- lpi_work9 %>% 
+  mutate(across(Introduction:'Other...164',
+                ~case_when(.x == "NULL" ~ "Unknown",
+                           TRUE ~ "Reason for increase")))
+  
+  
 # Test sensitivity of these pops following similar approach as below(ts > (5 & 10) and remove upper and lower quantiles) ----
 # Discuss with Mike and Louise whether this makes sense before doing it. Do regressions instead 30/08/2021.
  # 5 years
@@ -694,7 +707,25 @@ df %>%
         legend.title = element_blank(),
         axis.title.y = element_blank()) +
   scale_fill_viridis_d()
-  
+
+# Plotting primary actions  
+df1 <- lpi_work8_long1 %>%
+  group_by(primary_cons_category, Class) %>%
+  summarise(counts = n()) %>% 
+  group_by(Class) %>% 
+  mutate(percentage = (counts/sum(counts))*100)
+
+df1 %>% 
+  filter(Class %in% c("Actinopteri","Aves","Mammalia")) %>% 
+  ggplot(aes(x = percentage, y = reorder(primary_cons_category, percentage), fill = primary_cons_category)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = counts), size = 6, color = "black") + 
+  theme_pubclean() +
+  facet_wrap(~Class) +
+  theme(text=element_text(size=21),
+        legend.title = element_blank(),
+        axis.title.y = element_blank()) +
+  scale_fill_viridis_d()
 # Check number of species in each class - excluding populations exclusively targeted by the research category
 
 lpi_work8_long1 %>% 
@@ -1362,8 +1393,8 @@ lambda_df_sum <- lambda_df %>%
   select(everything(), -c(lambda, year)) %>% 
   distinct()
 
-# Test in INLA as I don't remember the syntax of the other packages. Use default priors. Also, random effects might be a bit different here than 
-# in Louise's paper so remmeber to check that (She is probably nesting species in class)
+# Test in INLA as I don't remember the syntax for the other packages. Use default priors. Also, random effects might be a bit different here than 
+# in Louise's paper so remeber to check that (She is probably nesting species in class)
 
 Louise_region <- inla(lambda_sum ~ 0 + ts_length + treatment +
                         f(Class, model = "iid") +
@@ -1394,7 +1425,7 @@ summary(mixed.lmer1)
 
 # Wauchope's method. Slightly tweaked as we do not have BA but more like CI instead.
 
-# First, get rid of the X in the year variable and make sure it
+# Remove X in the year variable and make sure it's numeric
 
 lambda_df <- lambda_df %>% 
   mutate(year = str_remove(year, "X"))
@@ -1406,3 +1437,6 @@ lambda_df$year <- as.numeric(lambda_df$year)
 mixed.ci <- lmer(lambda ~ 0 + year + treatment + Class + (1|ID) + (1|Country), data = lambda_df)
 
 summary(mixed.ci)
+
+
+## Plotting
