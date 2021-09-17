@@ -628,21 +628,64 @@ lpi_merged_trend_PA <- bind_rows(lpi_all_trend, lpi_all_trend_corrected, lpi_all
     geom_line(size = 2) +
     geom_ribbon(aes(ymin=CI_low, ymax=CI_high), linetype=3, alpha=0.1) +
     theme_bw() +
+    ylab("Index (1970 = 1)") +
     theme(legend.title = element_blank(),
           text=element_text(size=30),
           legend.position = "bottom"))
 
-## # Relabel factors for balloon plot ----
+## # Relabel factors for balloon plot. UPDATE not necessary, done below
 
-lpi_work9 <- lpi_work8 %>% 
-  mutate(across(land_water_management:research,
-                ~case_when(.x == 0 ~ "Not targeted",
-                           TRUE ~ "Targeted")))
+#lpi_work9 <- lpi_work8 %>% 
+#  mutate(across(land_water_management:research,
+#                ~case_when(.x == 0 ~ "Not targeted",
+#                           TRUE ~ "Targeted")))
 
-lpi_work10 <- lpi_work9 %>% 
-  mutate(across(Introduction:'Other...164',
-                ~case_when(.x == "NULL" ~ "Unknown",
-                           TRUE ~ "Reason for increase")))
+#lpi_work10 <- lpi_work9 %>% 
+#  mutate(across(Introduction:'Other...164',
+#                ~case_when(.x == "NULL" ~ "Unknown",
+#                           TRUE ~ "Reason for increase")))
+
+## Test frequency of co-occurence between conservation actions and reasons for population increases ----
+
+# First, redo the lpi_work8 df into a format that's appropriate for the balloon plot
+
+baloon <- lpi_work8 %>% 
+  select(land_water_protection, land_water_management,species_management, 
+         education_awareness, law_policy, incentives, external_capacity, research, Introduction, Recolonisation, Recruitment, 
+         Removal_of_threat, Reintroduction, Range_shift, Legal_protection, Management)
+
+# pivot conservation actions longer
+
+baloon1 <- baloon %>% 
+  pivot_longer((1:8),
+               names_to = "Conservation_lvl_1",
+               values_to = "active_cons")
+
+# pivot reasons for increase longer
+
+baloon2 <- baloon1 %>% 
+  pivot_longer((1:8),
+               names_to = "Reason_increase",
+               values_to = "active_reason")
+
+# select pops with conservation and reason for increase listed
+
+baloon3 <- baloon2 %>% 
+  filter(active_cons ==1 & active_reason == 1)
+
+# Count frequency of combinations
+
+baloon4 <- baloon3 %>% 
+  count(Conservation_lvl_1, Reason_increase) %>% 
+  spread(Reason_increase, n) # spread is pretty similar to pivot_wider but is just older tidyr syntax
+
+# Save first col as row names
+
+baloon5 <- data.frame(baloon4, row.names = 1)
+
+# Plot - Looks as it should we decent overlap between reasons for increase and the conservation actions we would expect.
+
+ggballoonplot(baloon5, size = "value")
   
   
 # Test sensitivity of these pops following similar approach as below(ts > (5 & 10) and remove upper and lower quantiles) ----
@@ -1416,13 +1459,14 @@ summary(mixed.lmer)
 
 # Level 2 conservation categories
 
-mixed.lmer1 <- lmer(lambda_sum ~ 0 + ts_length + land_water_protection + land_water_management + 
+mixed.lmer1 <- lmer(lambda_sum ~ 0 + Utilised + ts_length + land_water_protection + land_water_management + 
                       species_management + education_awareness + law_policy + incentives + external_capacity + research +  
                       Class + (1|Family/Binomial) + (1|Country), data = lambda_df_sum)
 
 
 summary(mixed.lmer1)
 
+plot_model(mixed.lmer1)
 # Wauchope's method. Slightly tweaked as we do not have BA but more like CI instead.
 
 # Remove X in the year variable and make sure it's numeric
