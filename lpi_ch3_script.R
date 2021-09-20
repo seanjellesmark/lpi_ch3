@@ -525,7 +525,7 @@ conservation_full <- ggplot_lpi(lpi_full_cons_trend, title ="Conservation - full
 
 conservation_full + no_conservation_full
 
-# Create nice visuals 
+# Create a nicer visual containing all samples 
  # First, gather all the indices, add scenario information and conservation info. We do this using a function
 
 combiner <- function (data, conservation_status, scenario){
@@ -556,17 +556,22 @@ fullcont <- combiner(lpi_full_cont_trend, "Counterfactual", "Scenario 4")
 cons_data <- bind_rows(list(libcons, libcont, benchcons, benchcont, stringcons, stringcont, fullcons, fullcont), .id = 'source')
 
 cons_data <- cons_data %>% 
-  filter(year > 2017)
+  filter(year < 2017)
 
 # plot
 
-impact_plot <- cons_data %>% 
-    ggplot(., aes(x = year, y = LPI_final, color = `conservation status`)) + 
+(impact_plot <- cons_data %>% 
+    ggplot(., aes(x = year, y = LPI_final, color = `conservation status`, fill = `conservation status`)) + 
     geom_line(size = 2) +
-    geom_ribbon(aes(ymin=CI_low, ymax=CI_high), linetype=3, alpha=0.1) +
-    theme_bw() +
-    theme(legend.title = element_blank(),
-          text=element_text(size=30)) 
+    geom_ribbon(aes(ymin=CI_low, ymax=CI_high), linetype=3, alpha=0.5) +
+    theme_classic() +
+    geom_hline(yintercept = 1, linetype=2) +
+  facet_wrap(~Scenario, scales = "free_y")) +
+  theme(legend.title = element_blank(),
+        text=element_text(size=30),
+        legend.position = "bottom") +
+  ylab("Index (1970 = 1)")+
+  scale_colour_viridis_d(option = "D")
 
 ## The approximation of the 2010 science paper by Hoffmann et al 2010 ----
 
