@@ -531,7 +531,8 @@ conservation_full + no_conservation_full
 combiner <- function (data, conservation_status, scenario){
   data %>% 
     mutate("conservation status" = conservation_status,
-           "Scenario" = scenario)
+           "Scenario" = scenario,
+           year = 1970:2018)
 }
 
 libcons <- combiner(lpi_matched_cons_lib, "Conservation", "Scenario 1")
@@ -554,6 +555,18 @@ fullcont <- combiner(lpi_full_cont_trend, "Counterfactual", "Scenario 4")
 
 cons_data <- bind_rows(list(libcons, libcont, benchcons, benchcont, stringcons, stringcont, fullcons, fullcont), .id = 'source')
 
+cons_data <- cons_data %>% 
+  filter(year > 2017)
+
+# plot
+
+impact_plot <- cons_data %>% 
+    ggplot(., aes(x = year, y = LPI_final, color = `conservation status`)) + 
+    geom_line(size = 2) +
+    geom_ribbon(aes(ymin=CI_low, ymax=CI_high), linetype=3, alpha=0.1) +
+    theme_bw() +
+    theme(legend.title = element_blank(),
+          text=element_text(size=30)) 
 
 ## The approximation of the 2010 science paper by Hoffmann et al 2010 ----
 
