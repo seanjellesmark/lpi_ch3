@@ -525,6 +525,36 @@ conservation_full <- ggplot_lpi(lpi_full_cons_trend, title ="Conservation - full
 
 conservation_full + no_conservation_full
 
+# Create nice visuals 
+ # First, gather all the indices, add scenario information and conservation info. We do this using a function
+
+combiner <- function (data, conservation_status, scenario){
+  data %>% 
+    mutate("conservation status" = conservation_status,
+           "Scenario" = scenario)
+}
+
+libcons <- combiner(lpi_matched_cons_lib, "Conservation", "Scenario 1")
+
+libcont <- combiner(lpi_matched_control_lib, "Counterfactual", "Scenario 1")  
+
+benchcons <- combiner(lpi_bench_cons, "Conservation", "Scenario 2")
+
+benchcont <- combiner(lpi_bench_cont, "Counterfactual", "Scenario 2")
+
+stringcons <- combiner(lpi_matched_cons_stringent, "Conservation", "Scenario 3")
+
+stringcont <- combiner(lpi_matched_control_stringent, "Counterfactual", "Scenario 3")
+  
+fullcons <- combiner(lpi_full_cons_trend, "Conservation", "Scenario 4")
+
+fullcont <- combiner(lpi_full_cont_trend, "Counterfactual", "Scenario 4")
+
+# Bind into one df for easy plotting
+
+cons_data <- bind_rows(list(libcons, libcont, benchcons, benchcont, stringcons, stringcont, fullcons, fullcont), .id = 'source')
+
+
 ## The approximation of the 2010 science paper by Hoffmann et al 2010 ----
 
 # Assume that all conservation targeted species had remained stable in the absence of conservation
