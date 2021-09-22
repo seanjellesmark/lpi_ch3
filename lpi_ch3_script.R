@@ -570,8 +570,8 @@ cons_data <- cons_data %>%
   theme(legend.title = element_blank(),
         text=element_text(size=30),
         legend.position = "bottom") +
-  ylab("Index (1970 = 1)")+
-  scale_colour_viridis_d(option = "D")
+  ylab("Index (1970 = 1)")+ xlab("Year") +
+  scale_color_viridis_d(option = "D", begin = 0, end = 0.7, aesthetics = c("color", "fill"), direction = -1)
 
 ## The approximation of the 2010 science paper by Hoffmann et al 2010 ----
 
@@ -671,15 +671,21 @@ lpi_all_trend_corrected_PA <- lpi_all_trend_corrected_PA %>%
 
 lpi_merged_trend_PA <- bind_rows(lpi_all_trend, lpi_all_trend_corrected, lpi_all_trend_corrected_PA)
 
+
+lpi_merged_trend_PA <- lpi_merged_trend_PA %>%  
+  mutate(trend = recode(lpi_merged_trend_PA$trend, normal = "Unweighted LPI", `stable conservation pops` = "LPI stable conservation populations", `PA stable conservation pops` = "LPI stable conservation population & PAs"))
+
 (global_cons_impact <- lpi_merged_trend_PA %>% 
     ggplot(., aes(x = year, y = LPI_final, color = trend, fill = trend)) + 
+    geom_hline(yintercept = 1, linetype=2) +
     geom_line(size = 2) +
     geom_ribbon(aes(ymin=CI_low, ymax=CI_high), linetype=3, alpha=0.1) +
-    theme_bw() +
+    theme_classic() +
     ylab("Index (1970 = 1)") +
     theme(legend.title = element_blank(),
           text=element_text(size=30),
-          legend.position = "bottom"))
+          legend.position = "bottom")+
+    scale_color_viridis_d(option = "D", begin = 0, end = 0.9, aesthetics = c("color", "fill"), direction = -1))
 
 ## # Relabel factors for balloon plot. UPDATE not necessary, done below
 
@@ -731,7 +737,7 @@ baloon4 <- baloon3 %>%
 
 baloon5 <- data.frame(baloon4, row.names = 1)
 
-# Plot - Looks as it should we decent overlap between reasons for increase and the conservation actions we would expect.
+# Plot - Looks like it shows decent overlap between reasons for increase and the conservation actions we would expect - good.
 
 ggballoonplot(baloon5, size = "value")
   
