@@ -671,9 +671,11 @@ lpi_all_trend_corrected_PA <- lpi_all_trend_corrected_PA %>%
 
 lpi_merged_trend_PA <- bind_rows(lpi_all_trend, lpi_all_trend_corrected, lpi_all_trend_corrected_PA)
 
+# Recode trend levels. I haven't named them well
 
 lpi_merged_trend_PA <- lpi_merged_trend_PA %>%  
-  mutate(trend = recode(lpi_merged_trend_PA$trend, normal = "Unweighted LPI", `stable conservation pops` = "LPI stable conservation populations", `PA stable conservation pops` = "LPI stable conservation population & PAs"))
+  mutate(trend = recode(lpi_merged_trend_PA$trend, normal = "Unweighted LPI", `stable conservation pops` = "LPI stable conservation populations", 
+                        `PA stable conservation pops` = "LPI stable conservation population & PAs"))
 
 (global_cons_impact <- lpi_merged_trend_PA %>% 
     ggplot(., aes(x = year, y = LPI_final, color = trend, fill = trend)) + 
@@ -731,7 +733,8 @@ baloon3 <- baloon2 %>%
 
 baloon4 <- baloon3 %>% 
   count(Conservation_lvl_1, Reason_increase) %>% 
-  spread(Reason_increase, n) # spread is pretty similar to pivot_wider but is just older tidyr syntax
+  spread(Reason_increase, n) # spread is similar to pivot_wider but is older tidyr syntax. Rewrite to new syntax when 
+# time to spare
 
 # Save first col as row names
 
@@ -1460,6 +1463,12 @@ lpi_info <- lpi_work8 %>%
   select(everything(), - c(X1970:X2018)) %>% 
   select(everything(), -c('1950':'2019')) 
 
+# Add location data to the info. Removed it earlier as it was duplicated during a sloppy join
+loc_data <- lpi_all %>% 
+  select(ID, Location)
+
+lpi_info <- left_join(lpi_info, loc_data, by = "ID")
+
 lambda_full <- left_join(lambda_full_lpi, lpi_info, by = "ID")
 
 # Pivot lambda values to long format
@@ -1520,7 +1529,22 @@ mixed.lmer1 <- lmer(lambda_sum ~ 0 + Utilised + ts_length + land_water_protectio
 
 summary(mixed.lmer1)
 
-plot_model(mixed.lmer1)
+# Using location instead of country
+
+mixed.lmer2 <- lmer(lambda_sum ~ 0 + Utilised + ts_length + land_water_protection + land_water_management + 
+                      species_management + education_awareness + law_policy + incentives + external_capacity + research +  
+                      Class + (1|Family/Binomial) + (1|Location), data = lambda_df_sum)
+
+summary(mixed.lmer2)
+
+# Check model performance
+
+library(performance)
+library(see) # Might just have fucked up all my packages while trying to load the see package. Restart and check
+
+compare_performance(mixed.lmer1, mixed.lmer2) # location is the better option
+
+check_model(mixed.lmer2)
 # Wauchope's method. Slightly tweaked as we do not have BA but more like CI instead.
 
 # Remove X in the year variable and make sure it's numeric
