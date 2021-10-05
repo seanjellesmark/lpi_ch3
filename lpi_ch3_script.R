@@ -434,8 +434,81 @@ lpi_full_cont %>%
   group_by(Class) %>% 
   count()
 
- # Plot points
- 
+
+# Plot taxonomy in each matched scenario
+ # 
+lpi_lib_pop <- bind_rows(lpi_lib_cons, lpi_lib_cont) 
+
+lpi_lib_pop <- lpi_lib %>% 
+  group_by(Class, treatment) %>% 
+  summarise(n_class = n())
+
+(plot<- ggplot(lpi_lib_pop, aes(x="", y=n_class, fill=Class))+
+  geom_bar(width = 1, stat = "identity") +
+  facet_wrap(~factor(treatment)))
+
+# Species
+
+ # Scenario 1
+lpi_lib_species <- lpi_match_lib %>%
+  group_by(Class, treatment) %>% 
+  mutate(treatment = recode(treatment, '1' = "Conservation", '0' = "Without conservation")) %>% 
+  summarise(n_species = n_distinct(Binomial))
+
+(plot_lib<- ggplot(lpi_lib_species, aes(x="", y=n_species, fill=Class))+
+    geom_bar(width = 1, stat = "identity") +
+    scale_fill_viridis_d() +
+    facet_wrap(~factor(treatment)) +
+    ggtitle("Scenario 1") +
+    xlab("") +
+    ylab("Number of species"))
+
+
+# Scenario 2
+lpi_bench_species <- lpi_match_bench %>%
+  group_by(Class, treatment) %>% 
+  mutate(treatment = recode(treatment, '1' = "Conservation", '0' = "Without conservation")) %>% 
+  summarise(n_species = n_distinct(Binomial))
+
+(plot_bench<- ggplot(lpi_bench_species, aes(x="", y=n_species, fill=Class))+
+    geom_bar(width = 1, stat = "identity") +
+    scale_fill_viridis_d() +
+    facet_wrap(~factor(treatment)) +
+    ggtitle("Scenario 2") +
+    xlab("") +
+    ylab(""))
+
+# Scenario 3
+lpi_string_species <- lpi_match_stringent %>%
+  group_by(Class, treatment) %>% 
+  mutate(treatment = recode(treatment, '1' = "Conservation", '0' = "Without conservation")) %>% 
+  summarise(n_species = n_distinct(Binomial))
+
+(plot_string<- ggplot(lpi_string_species, aes(x="", y=n_species, fill=Class))+
+    geom_bar(width = 1, stat = "identity") +
+    scale_fill_viridis_d() +
+    facet_wrap(~factor(treatment)) +
+    ggtitle("Scenario 3")+
+  xlab("") +
+  ylab("Number of species"))
+
+# Scenario 4
+lpi_full_species <- lpi_work8 %>%
+  group_by(Class, treatment) %>% 
+  mutate(treatment = recode(treatment, '1' = "Conservation", '0' = "Without conservation")) %>% 
+  summarise(n_species = n_distinct(Binomial))
+
+(plot_full<- ggplot(lpi_full_species, aes(x="", y=n_species, fill=Class))+
+    geom_bar(width = 1, stat = "identity") +
+    scale_fill_viridis_d() +
+    facet_wrap(~factor(treatment)) +
+    ggtitle("Scenario 4")+
+    xlab("") +
+    ylab(""))
+
+(plot_lib + plot_bench) / (plot_string +plot_full)
+
+# Plot points
 
 mapWorld <- borders("world", colour="gray50", fill="white")
 mp <- ggplot() + mapWorld
@@ -742,8 +815,7 @@ baloon5 <- data.frame(baloon4, row.names = 1)
 
 # Plot - Looks like it shows decent overlap between reasons for increase and the conservation actions we would expect - good.
 
-ggballoonplot(baloon5, size = "value")
-  
+ggballoonplot(baloon5, size = "value", show.label = TRUE)
   
 # Test sensitivity of these pops following similar approach as below(ts > (5 & 10) and remove upper and lower quantiles) ----
 # Discuss with Mike and Louise whether this makes sense before doing it. Do regressions instead 30/08/2021.
@@ -798,7 +870,7 @@ df
 df %>% 
   filter(primary_cons_category != "Research") %>% 
   filter(Class %in% c("Actinopteri","Aves","Mammalia")) %>% 
-  ggplot(aes(x = percentage, y = reorder(cons_action, percentage), color = primary_cons_category, fill = primary_cons_category)) +
+  ggplot(aes(x = percentage, y = reorder(cons_action, percentage), fill = primary_cons_category)) +
   geom_bar(stat = "identity") +
   geom_text(aes(label = counts), size = 6, color = "black") + 
   theme_pubclean() +
@@ -826,6 +898,50 @@ df1 %>%
         legend.title = element_blank(),
         axis.title.y = element_blank()) +
   scale_fill_viridis_d()
+
+# Plot main and sub for all classes
+ # main cons actions
+df2 <- lpi_work8_long1 %>%
+  group_by(primary_cons_category, Class) %>%
+  summarise(counts = n()) %>% 
+  group_by(Class) %>% 
+  mutate(percentage = (counts/sum(counts))*100)
+
+df2 %>% 
+  ggplot(aes(x = percentage, y = reorder(primary_cons_category, percentage), fill = primary_cons_category)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = counts), size = 6, color = "black") + 
+  theme_pubclean() +
+  facet_wrap(~Class) +
+  theme(text=element_text(size=21),
+        legend.title = element_blank(),
+        axis.title.y = element_blank()) +
+  scale_fill_viridis_d()
+
+ # secondary actions
+
+df3 <- lpi_work8_long1 %>%
+  group_by(cons_action, primary_cons_category, Class) %>%
+  summarise(counts = n()) %>% 
+  group_by(Class) %>% 
+  mutate(percentage = (counts/sum(counts))*100)
+
+df3 <-df3 %>% 
+  ggplot(aes(x = percentage, y = reorder(cons_action, percentage), fill = primary_cons_category)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = counts), size = 6, color = "black") + 
+  theme_pubclean() +
+  facet_wrap(~Class) +
+  theme(text=element_text(size=21),
+        legend.title = element_blank(),
+        axis.title.y = element_blank()) +
+  scale_fill_viridis_d()
+
+# Save plot
+
+ggsave(filename = "C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Plots and tables/all_cons.tiff",
+       plot = df3, compression = "lzw", width = 60, height = 40, dpi = 400, units = "cm")
+
 # Check number of species in each class - excluding populations exclusively targeted by the research category
 
 lpi_work8_long1 %>% 
@@ -871,6 +987,8 @@ lpi_loc <- lpi_work8 %>%
           legend.position = "top") + 
     guides(shape = guide_legend(override.aes = list(size = 5))) +
     scale_color_viridis_c(end = 1))
+
+
 
 #ggsave(filename = "C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Plots and tables/length_cons.tiff",
 #       plot = cons_length, compression = "lzw", width = 60, height = 40, dpi = 400, units = "cm")
@@ -1500,7 +1618,7 @@ lambda_df_sum <- lambda_df %>%
   distinct()
 
 # Test in INLA as I don't remember the syntax for the other packages. Use default priors. Also, random effects might be a bit different here than 
-# in Louise's paper so remeber to check that (She is probably nesting species in class)
+# in Louise's paper so remember to check that (She is probably nesting species in class)
 
 Louise_region <- inla(lambda_sum ~ 0 + ts_length + treatment +
                         f(Class, model = "iid") +
@@ -1516,7 +1634,7 @@ library(lme4)
 
 # Targeted vs not targeted
 
-mixed.lmer <- lmer(lambda_sum ~ 0 + ts_length + treatment + Class + (1|Family/Binomial) + (1|Country), data = lambda_df_sum)
+mixed.lmer <- lmer(lambda_sum ~ 0 + ts_length + Utilised * treatment + Class + (1|Family/Binomial) + (1|Location), data = lambda_df_sum)
 
 summary(mixed.lmer)
 
@@ -1540,11 +1658,15 @@ summary(mixed.lmer2)
 # Check model performance
 
 library(performance)
-library(see) # Might just have fucked up all my packages while trying to load the see package. Restart and check
+library(see) # Might just have fucked up all my packages while trying to load the see package. Restart and check - Update, Fixed it. Crisis averted
 
 compare_performance(mixed.lmer1, mixed.lmer2) # location is the better option
 
-check_model(mixed.lmer2)
+model_performance(mixed.lmer2)
+
+check_model(mixed.lmer2) # Looks okay but not perfect
+check_singularity(mixed.lmer2)
+
 # Wauchope's method. Slightly tweaked as we do not have BA but more like CI instead.
 
 # Remove X in the year variable and make sure it's numeric
