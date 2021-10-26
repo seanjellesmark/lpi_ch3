@@ -26,6 +26,16 @@ setwd("C:/Users/seanj/OneDrive - University College London/Articles from Thesis/
 
 lpi <- read_excel("C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Data/LPD_output_20201116.xlsx")
 
+# Add common class names
+
+lpi <- lpi %>% 
+  mutate(common_class = case_when(Class %in% c("Actinopteri", "Coelacanthi", "Dipneusti", "Elasmobranchii", "Holocephali", "Myxini", "Petromyzonti") ~ "Fishes",
+                                  Class == "Amphibia" ~ "Amphibians",
+                                  Class == "Aves" ~ "Birds",
+                                  Class == "Mammalia" ~ "Mammals",
+                                  Class == "Reptilia" ~ "Reptiles"))
+
+
 # Conservation sheet
 
 cons<- read_excel("C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Data/Conservation_LPD_worksheet05072021.xlsx") %>% 
@@ -110,7 +120,7 @@ lpi_work %>%
 
 lpi_work1 <- left_join(lpi_work, cons, by = "Management_type") 
 
-# Create variables for starting year, number of ops and duration of time series
+# Create variables for starting year, number of obs and duration of time series
  # First thing to do is to transform the df into a long format
 
 lpi_work2 <- lpi_work1 %>% 
@@ -144,11 +154,13 @@ lpi_work4 <- left_join(lpi_work1, lpi_work3, by = "ID")
 lpi_work5 <- lpi_work4 %>% 
   select(everything(), -ends_with(".x")) # Removes duplicate name and location variables
 
-# Remove variables where conservation management is unknown or cannot be categorized
+# Remove pops where conservation management is unknown or cannot be categorized
 
 lpi_work6 <- lpi_work5 %>% 
-  filter(Management_type != "NA" | Management_type != "Unknown") %>% 
-  mutate(treatment = if_else(Managed == 1, 1, 0))# Drops 210 pops
+  filter(Management_type != "NA") %>% 
+  filter(Management_type != "Unknown") %>% 
+  mutate(treatment = if_else(Managed == 1, 1, 0))# Drops 210 pops - It doesn't filter unknown management properly when doing it in one 
+# line for whatever reason
 
 # Contruct pre-match object to check initial balance. 
 # Most variables are categorical and will be exact but potentially a few continuous (that we just created) - Update: This takes forever, even 
@@ -160,7 +172,7 @@ lpi_work6$Binomial <- factor(lpi_work6$Binomial)
 
 lpi_work6$Country <- factor(lpi_work6$Country)
 
-## Check distribution of conservations in the LPI
+## Check distribution of conservation in the LPI
 
 # Add X to the year columns as the LPImain functions doesn't work otherwise
 
@@ -345,8 +357,8 @@ lpi_work8 <- lpi_work8 %>%
            
 # Add Cites data from the lpi - UPDATE: Doesn't make sense. equal number of pops in both groups (approx 2500 in total) are listed.
 
-lpi_work9 <- lpi_work8 %>% 
-  mutate(international_legislation_5.1.1 = if_else(CITES != "Not listed", 1, international_legislation_5.1.1))
+#lpi_work9 <- lpi_work8 %>% 
+#  mutate(international_legislation_5.1.1 = if_else(CITES != "Not listed", 1, international_legislation_5.1.1))
            
  # Reduce the number of rows in order to check if whether the matching method works properly without having to run forever
  # Update - Not necessary. Problem is adding multiple conditions to the matching, for some reason forces matching procedure into an endless loop
@@ -434,6 +446,16 @@ lpi_full_cont %>%
   group_by(Class) %>% 
   count()
 
+# nr of species
+
+# Conservation group
+lpi_full_cons %>% 
+  summarise(n_species = n_distinct(Binomial))
+
+# Control group
+lpi_full_cont %>% 
+  group_by(Class) %>% 
+  count()
 
 # Plot taxonomy in each matched scenario
  # 
@@ -725,8 +747,15 @@ lpi_merged_trend <- bind_rows(lpi_all_trend, lpi_all_trend_corrected)
 # Replace all observed population counts for the managed group and for populations inside PAs with conservation as reason for increase 
 # with a constant number and re-create the trend
 
+ # First run used this but we have altered the code so this part is outdated.
+#lpi_all_corrected_PA <- lpi_all_corrected %>%
+#  mutate(PA = if_else(Ramsar == 1 | WHS == 1 | Biosphere == 1 | Other_PA == 1, 1, 0))
+
+# Insted, we use a sismplified version drawing directly on the whether a population is recorded as being inside a PA
+
 lpi_all_corrected_PA <- lpi_all_corrected %>%
-  mutate(PA = if_else(Ramsar == 1 | WHS == 1 | Biosphere == 1 | Other_PA == 1, 1, 0))
+  mutate(PA = if_else(Protected_status == 1, 1, 0))
+
 
 lpi_all_corrected_PA <- lpi_all_corrected_PA %>%
   mutate(across(X1970:X2018,
@@ -880,6 +909,26 @@ df %>%
         axis.title.y = element_blank()) +
   scale_fill_viridis_d()
 
+# Plot using "common classes"
+df_mod <- lpi_work8_long1 %>%
+  group_by(cons_action, primary_cons_category, common_class) %>%
+  summarise(counts = n()) %>% 
+  group_by(common_class) %>% 
+  mutate(percentage = (counts/sum(counts))*100)
+
+df_mod %>% 
+  filter(primary_cons_category != "Research") %>% 
+  filter(common_class %in% c("Fishes","Birds","Mammals")) %>% 
+  ggplot(aes(x = percentage, y = reorder(cons_action, percentage), fill = primary_cons_category)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = counts), size = 6, color = "black") + 
+  theme_pubclean() +
+  facet_wrap(~common_class) +
+  theme(text=element_text(size=21),
+        legend.title = element_blank(),
+        axis.title.y = element_blank()) +
+  scale_fill_viridis_d()
+
 # Plotting primary actions  
 df1 <- lpi_work8_long1 %>%
   group_by(primary_cons_category, Class) %>%
@@ -898,6 +947,28 @@ df1 %>%
         legend.title = element_blank(),
         axis.title.y = element_blank()) +
   scale_fill_viridis_d()
+
+# Plot using common class
+
+df1_mod <- lpi_work8_long1 %>%
+  group_by(primary_cons_category, common_class) %>%
+  summarise(counts = n()) %>% 
+  group_by(common_class) %>% 
+  mutate(percentage = (counts/sum(counts))*100)
+
+df1_mod %>% 
+  filter(common_class %in% c("Fishes","Birds","Mammals")) %>% 
+  ggplot(aes(x = percentage, y = reorder(primary_cons_category, percentage), fill = primary_cons_category)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = counts), size = 6, color = "black") + 
+  theme_pubclean() +
+  facet_wrap(~common_class) +
+  xlab("Percentage") +
+  theme(text=element_text(size=21),
+        legend.title = element_blank(),
+        axis.title.y = element_blank()) +
+  scale_fill_viridis_d()
+
 
 # Plot main and sub for all classes
  # main cons actions
@@ -939,8 +1010,8 @@ df3 <-df3 %>%
 
 # Save plot
 
-ggsave(filename = "C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Plots and tables/all_cons.tiff",
-       plot = df3, compression = "lzw", width = 60, height = 40, dpi = 400, units = "cm")
+#ggsave(filename = "C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Plots and tables/all_cons.tiff",
+#       plot = df3, compression = "lzw", width = 60, height = 40, dpi = 400, units = "cm")
 
 # Check number of species in each class - excluding populations exclusively targeted by the research category
 
