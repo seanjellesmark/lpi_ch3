@@ -18,6 +18,9 @@ library(maptools)
 library(maps)
 library(stringr)
 library(INLA)
+
+# Testing if updated token works
+
 # set wd for infile creation
 
 setwd("C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/LPI_files")
@@ -140,7 +143,7 @@ lpi_work3 <- lpi_work2 %>%
   mutate(start_year = min(year),
          last_year = max(year),
          ts_length = last_year - start_year,
-         n_obs = sum(year)) %>% 
+         n_obs = sum(year > 0)) %>% 
   select(ID, start_year, last_year, ts_length, n_obs) %>% 
   distinct() %>% 
   ungroup()
