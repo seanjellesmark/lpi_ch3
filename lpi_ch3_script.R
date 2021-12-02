@@ -19,7 +19,7 @@ library(maps)
 library(stringr)
 library(INLA)
 
-# Testing if updated token works
+# Testing if updated token works - it does
 
 # set wd for infile creation
 
@@ -675,7 +675,7 @@ cons_data <- cons_data %>%
   theme(legend.title = element_blank(),
         text=element_text(size=30),
         legend.position = "bottom") +
-  ylab("Index (1970 = 1)")+ xlab("Year") +
+  ylab("Vertebrate population index (1970 = 1)")+ xlab("Year") +
   scale_color_viridis_d(option = "D", begin = 0, end = 0.7, aesthetics = c("color", "fill"), direction = -1)
 
 ## The approximation of the 2010 science paper by Hoffmann et al 2010 ----
@@ -797,12 +797,32 @@ lpi_all_trend_corrected_PA <- lpi_all_trend_corrected_PA %>%
          year = 1970:2018) %>% 
   filter(year < 2017)
 
-lpi_merged_trend_PA <- bind_rows(lpi_all_trend, lpi_all_trend_corrected, lpi_all_trend_corrected_PA)
+# Richard talked about adding one without conservation so we create a global index where conservation targeted populations have been excluded.
+ 
+ # First, filter away conservation targeted populations
+
+excluding_cons <- anti_join(lpi_all, lpi_full_cons, by = "ID")
+
+# Create a trend to check how it looks
+
+create_infile(excluding_cons, name = "excluding_cons",  start_col_name = 'X1970', end_col_name = 'X2016')
+
+excluding_cons_trend<-LPIMain(infile = "excluding_cons_infile.txt", VERBOSE = FALSE, REF_YEAR = 1970)
+
+excluding_cons_trend <- excluding_cons_trend %>% 
+  mutate(trend = "Excluding cons trend",
+         year = 1970:2018) %>% 
+  filter(year < 2017)
+
+
+# bind together for easier plotting
+
+lpi_merged_trend_PA <- bind_rows(lpi_all_trend, lpi_all_trend_corrected, lpi_all_trend_corrected_PA, excluding_cons_trend)
 
 # Recode trend levels. I haven't named them well
 
 lpi_merged_trend_PA <- lpi_merged_trend_PA %>%  
-  mutate(trend = recode(lpi_merged_trend_PA$trend, normal = "Unweighted", `stable conservation pops` = "Stable conservation populations", 
+  mutate(trend = recode(lpi_merged_trend_PA$trend, normal = "Reference index", `stable conservation pops` = "Stable conservation populations", 
                         `PA stable conservation pops` = "Stable conservation population & PAs"))
 
 (global_cons_impact <- lpi_merged_trend_PA %>% 
@@ -816,6 +836,39 @@ lpi_merged_trend_PA <- lpi_merged_trend_PA %>%
           text=element_text(size=30),
           legend.position = "bottom")+
     scale_color_viridis_d(option = "D", begin = 0, end = 0.9, aesthetics = c("color", "fill"), direction = -1))
+
+# Create a plot where improvements are shown relative to the unweighted LPI
+
+lpi_merged_trend_PA1 <- lpi_merged_trend_PA %>% 
+  pivot_wider(values_from = c(LPI_final, CI_low, CI_high),
+              names_from = trend) %>% 
+  mutate("Conservation targeted populations" = .[[2]] - .[[3]],
+         "Conservation targeted populations and inside PAs" = .[[2]] - .[[4]],
+         "Excluding conservation targeted populations" = .[[2]] - .[[5]],) %>% 
+  select(1, 14:16) %>% 
+  pivot_longer(cols = 2:4,
+               names_to="Index",
+               values_to = "Improvement")
+
+# Plot improvements
+
+
+(global_cons_improvement <- lpi_merged_trend_PA1 %>% 
+  ggplot(., aes(x = year, y = Improvement, color = Index)) + 
+  geom_hline(yintercept = 0, linetype=2) +
+  geom_line(size = 2) +
+  theme_classic() +
+  ylab("Index Improvement") +
+    ylim(-0.1, 0.2)+
+  theme(legend.title = element_blank(),
+        text=element_text(size=20),
+        legend.position = "bottom")+
+  scale_color_viridis_d(option = "D", begin = 0, end = 0.9, aesthetics = c("color", "fill"), direction = -1))
+
+ggsave(filename = "C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Plots and tables/global_cons_improvement.tiff",
+       plot = global_cons_improvement, compression = "lzw", width = 40, height = 20, dpi = 400, units = "cm")
+
+
 
 ## # Relabel factors for balloon plot. UPDATE not necessary, done below
 
@@ -982,7 +1035,7 @@ df1_mod <- lpi_work8_long1 %>%
   group_by(common_class) %>% 
   mutate(percentage = (counts/sum(counts))*100)
 
-df1_mod %>% 
+main_cons_plot <-df1_mod %>% 
   filter(common_class %in% c("Fishes","Birds","Mammals")) %>% 
   ggplot(aes(x = percentage, y = reorder(primary_cons_category, percentage), fill = primary_cons_category)) +
   geom_bar(stat = "identity") +
@@ -990,11 +1043,14 @@ df1_mod %>%
   theme_pubclean() +
   facet_wrap(~common_class) +
   xlab("Percentage") +
-  theme(text=element_text(size=21),
+  theme(legend.position = "none",
+        text=element_text(size=21),
         legend.title = element_blank(),
         axis.title.y = element_blank()) +
   scale_fill_viridis_d()
 
+#ggsave(filename = "C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Plots and tables/main_cons_plot.tiff",
+#       plot = main_cons_plot, compression = "lzw", width = 40, height = 20, dpi = 400, units = "cm")
 
 # Plot main and sub for all classes
  # main cons actions
