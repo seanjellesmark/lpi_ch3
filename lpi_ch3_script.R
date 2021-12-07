@@ -687,6 +687,9 @@ cons_data <- cons_data %>%
 lpi_all <- lpi%>% 
   rename_with(.cols = '1970':'2018',function(x){paste0("X", x)})
 
+# Run without replicates - doesn't really change much except the trend excluding conservation pops comes closer to the two assuming stable trends
+#lpi_all <- lpi_all %>% 
+#  filter(Replicate == 0)
 
 create_infile(lpi_all, name = "lpi_all",  start_col_name = 'X1970', end_col_name = 'X2016')
 
@@ -865,8 +868,8 @@ lpi_merged_trend_PA1 <- lpi_merged_trend_PA %>%
         legend.position = "bottom")+
   scale_color_viridis_d(option = "D", begin = 0, end = 0.9, aesthetics = c("color", "fill"), direction = -1))
 
-ggsave(filename = "C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Plots and tables/global_cons_improvement.tiff",
-       plot = global_cons_improvement, compression = "lzw", width = 40, height = 20, dpi = 400, units = "cm")
+#ggsave(filename = "C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Plots and tables/global_cons_improvement.tiff",
+#       plot = global_cons_improvement, compression = "lzw", width = 40, height = 20, dpi = 400, units = "cm")
 
 
 
