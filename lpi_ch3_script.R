@@ -1038,11 +1038,12 @@ df1_mod <- lpi_work8_long1 %>%
   group_by(common_class) %>% 
   mutate(percentage = (counts/sum(counts))*100)
 
-main_cons_plot <-df1_mod %>% 
+(main_cons_plot <-df1_mod %>% 
   filter(common_class %in% c("Fishes","Birds","Mammals")) %>% 
   ggplot(aes(x = percentage, y = reorder(primary_cons_category, percentage), fill = primary_cons_category)) +
   geom_bar(stat = "identity") +
-  geom_text(aes(label = counts), size = 6, color = "black") + 
+  geom_text(aes(label = counts), size = 6, color = "black",
+            position = position_nudge(x = 6)) + 
   theme_pubclean() +
   facet_wrap(~common_class) +
   xlab("Percentage") +
@@ -1050,7 +1051,8 @@ main_cons_plot <-df1_mod %>%
         text=element_text(size=21),
         legend.title = element_blank(),
         axis.title.y = element_blank()) +
-  scale_fill_viridis_d()
+  scale_fill_viridis_d() +
+  xlim(0, 90)) # Ensures that the bar numbers doesn't fall outside the scale limits and cuts off part of 1862
 
 #ggsave(filename = "C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Plots and tables/main_cons_plot.tiff",
 #       plot = main_cons_plot, compression = "lzw", width = 40, height = 20, dpi = 400, units = "cm")
