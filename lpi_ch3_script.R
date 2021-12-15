@@ -2015,4 +2015,47 @@ mixed.ci <- lmer(lambda ~ 0 + year + treatment + Class + (1|ID) + (1|Country), d
 summary(mixed.ci)
 
 
-## Plotting
+## Creating the CBD figure - requires trends to be created from primary script ----
+
+# Impact of cons but only for Scenario 2
+scen2 <- cons_data
+
+(impact_plot_scen2 <- cons_data %>% 
+    filter(Scenario == "Scenario 2") %>% 
+    mutate(`conservation status` = if_else(`conservation status` == "Conservation", "Conservation targeted", "Control")) %>% 
+    ggplot(., aes(x = year, y = LPI_final, color = `conservation status`, fill = `conservation status`)) + 
+    geom_line(size = 2) +
+    geom_ribbon(aes(ymin=CI_low, ymax=CI_high), linetype=3, alpha=0.5) +
+    theme_classic() +
+    geom_hline(yintercept = 1, linetype=2) +
+    theme(legend.title = element_blank(),
+          text=element_text(size=20),
+          legend.position = "top") +
+    ylab("Vertebrate population index (1970 = 1)")+ xlab("Year") +
+    scale_color_viridis_d(option = "D", begin = 0, end = 0.7, aesthetics = c("color", "fill"), direction = -1))
+
+
+# Global cons actions
+
+(main_cons_plot <-df1_mod %>% 
+    filter(common_class %in% c("Fishes","Birds","Mammals")) %>% 
+    ggplot(aes(x = percentage, y = reorder(primary_cons_category, percentage), fill = primary_cons_category)) +
+    geom_bar(stat = "identity") +
+    geom_text(aes(label = counts), size = 6, color = "black",
+              position = position_nudge(x = 6)) + 
+    theme_pubclean() +
+    facet_wrap(~common_class) +
+    xlab("Percentage of vertebrate populations in the sample") +
+    theme(legend.position = "none",
+          text=element_text(size=21),
+          legend.title = element_blank(),
+          axis.title.y = element_blank()) +
+    scale_fill_viridis_d() + 
+    xlim(0, 90))# Ensures that the bar numbers doesn't fall outside the scale limits and cuts off part of 1862
+
+
+cbd_fig <- ggarrange(impact_plot_scen2, main_cons_plot,
+                     nrow = 2)
+
+#ggsave(filename = "C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Plots and tables/cbd_fig.tiff",
+#       plot = cbd_fig, compression = "lzw", width = 40, height = 30, dpi = 400, units = "cm")
