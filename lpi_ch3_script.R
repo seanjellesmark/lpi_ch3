@@ -1999,6 +1999,25 @@ model_performance(mixed.lmer2)
 check_model(mixed.lmer2) # Looks okay but not perfect
 check_singularity(mixed.lmer2)
 
+
+## Visualize fixed effect parameter estimates instead of using a table in the manuscript (as of 12/01/2022 I used a table)
+
+ # sjPlot for easy plotting
+
+library(sjPlot)
+
+theme_set(theme_sjplot()) # Nicer theme
+
+# Ensure that the class variable is factor
+
+lambda_df_sum$Class <- as.factor(lambda_df_sum$Class)
+
+plot_coeff <- plot_model(mixed.lmer2, terms = c("Utilised", "ts_length", "land_water_protection", "land_water_management", 
+                                    "species_management", "education_awareness", "law_policy", "incentives", "external_capacity", "research"))
+
+ggsave(filename = "C:/Users/seanj/OneDrive - University College London/Articles from Thesis/3. Assessing the effect of global conservation/Plots and tables/coef_plot.svg",
+      plot = plot_coeff, width = 20, height = 20, dpi = 400, units = "cm") 
+
 # Wauchope's method. Slightly tweaked as we do not have BA but more like CI instead.
 
 # Remove X in the year variable and make sure it's numeric
@@ -2013,6 +2032,7 @@ lambda_df$year <- as.numeric(lambda_df$year)
 mixed.ci <- lmer(lambda ~ 0 + year + treatment + Class + (1|ID) + (1|Country), data = lambda_df)
 
 summary(mixed.ci)
+
 
 
 ## Creating the CBD figure - requires trends to be created from primary script ----
